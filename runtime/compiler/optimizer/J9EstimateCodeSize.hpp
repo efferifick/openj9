@@ -100,7 +100,7 @@ class CFGgenerator : public TR_J9EstimateCodeSize
    public:
 
       CFGgenerator() : TR_J9EstimateCodeSize() { };
-      TR::CFG *generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack);
+      TR::CFG *generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack, TR::Region &region);
 
    };
 #endif

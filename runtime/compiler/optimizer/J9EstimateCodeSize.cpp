@@ -346,6 +346,33 @@ static Block * getBlock(TR::Compilation *comp, Block * * blocks,
    return blocks[i];
    }
 
+static Block * getBlock2(TR::Compilation *comp, Block * * blocks,
+      TR_ResolvedMethod *feMethod, int32_t i, TR::CFG & cfg, TR::Region &region)
+   {
+   if (!blocks[i])
+      {
+
+      TR::TreeTop *startTree = TR::TreeTop::create(comp, TR::Node::createOnStack(
+            NULL, TR::BBStart, 0));
+      TR::TreeTop *endTree = TR::TreeTop::create(comp, TR::Node::createOnStack(
+            NULL, TR::BBEnd, 0));
+
+      startTree->join(endTree);
+      blocks[i] = new (region) Block (startTree, endTree,
+            comp->trMemory());
+
+      blocks[i]->setJ9EstimateCodeSizeMethod(feMethod);
+      blocks[i]->setBlockBCIndex(i);
+      blocks[i]->setNumber(cfg.getNextNodeNumber());
+
+      setupNode(startTree->getNode(), i, feMethod, comp);
+      setupNode(endTree->getNode(), i, feMethod, comp);
+      cfg.addNode(blocks[i]);
+      }
+
+   return blocks[i];
+   }
+
 static TR::ILOpCodes convertBytecodeToIL (TR_J9ByteCode bc)
    {
    switch (bc)
@@ -2556,7 +2583,7 @@ TR_J9EstimateCodeSize::isPartialInliningCandidate(TR_CallTarget *calltarget,
    }
 
 TR::CFG*
-CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack)
+CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack, TR::Region &region)
    {
    TR_ASSERT(calltarget->_calleeMethod, "assertion failure");
 
@@ -2911,12 +2938,12 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
                (uint16_t) handler, (uint32_t) type);
          }
 
-      OMR::ByteCodeCFG *cfg = new (_inliner->trHeapMemory()) OMR::ByteCodeCFG(comp(), calltarget->_calleeSymbol);
-      cfg->setStartAndEnd(new (comp()->trHeapMemory()) TR::Block(
+      OMR::ByteCodeCFG *cfg = new (region) OMR::ByteCodeCFG(comp(), calltarget->_calleeSymbol);
+      cfg->setStartAndEnd(new (region) TR::Block(
             TR::TreeTop::create(comp(), TR::Node::createOnStack(NULL,
                   TR::BBStart, 0)), TR::TreeTop::create(comp(),
                   TR::Node::createOnStack(NULL, TR::BBEnd, 0)),
-            comp()->trMemory()), new (comp()->trHeapMemory()) TR::Block(
+            comp()->trMemory()), new (region) TR::Block(
             TR::TreeTop::create(comp(), TR::Node::createOnStack(NULL,
                   TR::BBStart, 0)), TR::TreeTop::create(comp(),
                   TR::Node::createOnStack(NULL, TR::BBEnd, 0)),
@@ -2972,8 +2999,8 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
          if (flags[i].testAny(bbStart))
             {
             debugTrace(tracer(),"Calling getBlock.  blocks[%d] = %p", i, blocks[i]);
-            TR::Block * newBlock = getBlock(comp(), blocks,
-                  calltarget->_calleeMethod, i, *cfg);
+            TR::Block * newBlock = getBlock2(comp(), blocks,
+                  calltarget->_calleeMethod, i, *cfg, region);
 
             if (i != startIndex)
                {
@@ -3051,20 +3078,20 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
                case J9BCifnonnull:
                   {
                   debugTrace(tracer(),"if branch.i = %d adding edge between blocks %p %d and %p %d",
-                                       i, currentBlock, currentBlock->getNumber(), getBlock(comp(), blocks, calltarget->_calleeMethod, i+ bci.relativeBranch(), *cfg),
-                                       getBlock(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg)->getNumber());
+                                       i, currentBlock, currentBlock->getNumber(), getBlock2(comp(), blocks, calltarget->_calleeMethod, i+ bci.relativeBranch(), *cfg, region),
+                                       getBlock2(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg, region)->getNumber());
 
-                  setupLastTreeTop(currentBlock, bc, i, getBlock(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg), calltarget->_calleeMethod, comp());
-                  cfg->addEdge(currentBlock, getBlock(comp(), blocks,
+                  setupLastTreeTop(currentBlock, bc, i, getBlock2(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg, region), calltarget->_calleeMethod, comp());
+                  cfg->addEdge(currentBlock, getBlock2(comp(), blocks,
                         calltarget->_calleeMethod, i + bci.relativeBranch(),
-                        *cfg), heapAlloc);
+                        *cfg, region), heapAlloc);
                   addFallThruEdge = true;
                   break;
                   }
                case J9BCgoto:
                case J9BCgotow:
-                  setupLastTreeTop(currentBlock, bc, i, getBlock(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg), calltarget->_calleeMethod, comp());
-                  cfg->addEdge(currentBlock, getBlock(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg), heapAlloc);
+                  setupLastTreeTop(currentBlock, bc, i, getBlock2(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg, region), calltarget->_calleeMethod, comp());
+                  cfg->addEdge(currentBlock, getBlock2(comp(), blocks, calltarget->_calleeMethod, i + bci.relativeBranch(), *cfg, region), heapAlloc);
                   addFallThruEdge = false;
                   break;
                case J9BCgenericReturn:
@@ -3076,27 +3103,27 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
                case J9BCtableswitch:
                   {
                   int32_t index = bci.defaultTargetIndex();
-                  TR::Block *defaultBlock = getBlock(comp(), blocks,
+                  TR::Block *defaultBlock = getBlock2(comp(), blocks,
                         calltarget->_calleeMethod, i + bci.nextSwitchValue(
-                              index), *cfg);
+                              index), *cfg, region);
                   setupLastTreeTop(currentBlock, bc, i, defaultBlock,
                         calltarget->_calleeMethod, comp());
                   cfg->addEdge(currentBlock, defaultBlock, heapAlloc);
                   int32_t low = bci.nextSwitchValue(index);
                   int32_t high = bci.nextSwitchValue(index) - low + 1;
                   for (int32_t j = 0; j < high; ++j)
-                     cfg->addEdge(currentBlock, getBlock(comp(), blocks,
+                     cfg->addEdge(currentBlock, getBlock2(comp(), blocks,
                            calltarget->_calleeMethod, i + bci.nextSwitchValue(
-                                 index), *cfg), heapAlloc);
+                                 index), *cfg, region), heapAlloc);
                   addFallThruEdge = false;
                   break;
                   }
                case J9BClookupswitch:
                   {
                   int32_t index = bci.defaultTargetIndex();
-                  TR::Block *defaultBlock = getBlock(comp(), blocks,
+                  TR::Block *defaultBlock = getBlock2(comp(), blocks,
                         calltarget->_calleeMethod, i + bci.nextSwitchValue(
-                              index), *cfg);
+                              index), *cfg, region);
                   setupLastTreeTop(currentBlock, bc, i, defaultBlock,
                         calltarget->_calleeMethod, comp());
                   cfg->addEdge(currentBlock, defaultBlock, heapAlloc);
@@ -3104,9 +3131,9 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
                   for (int32_t j = 0; j < tableSize; ++j)
                      {
                      index += 4; // match value
-                     cfg->addEdge(currentBlock, getBlock(comp(), blocks,
+                     cfg->addEdge(currentBlock, getBlock2(comp(), blocks,
                            calltarget->_calleeMethod, i + bci.nextSwitchValue(
-                                 index), *cfg), heapAlloc);
+                                 index), *cfg, region), heapAlloc);
                      }
                   addFallThruEdge = false;
                   break;
@@ -3169,8 +3196,8 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
 
          if (flags[i].testAny(bbStart))
             {
-            currentInlinedBlock = getBlock(comp(), blocks,
-                  calltarget->_calleeMethod, i, *cfg);
+            currentInlinedBlock = getBlock2(comp(), blocks,
+                  calltarget->_calleeMethod, i, *cfg, region);
             debugTrace(tracer(),"Found current block %p, number %d\n", currentInlinedBlock, (currentInlinedBlock) ? currentInlinedBlock->getNumber() : -1);
             blockStartSize = bcSizes[i];
             }
@@ -3215,6 +3242,7 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
 
 
 
+/*
       {
       // This section of code is used to remedy the fact that
       // 1) blocks in the cfg do not have the sizes correct
@@ -3259,6 +3287,7 @@ CFGgenerator::generateCFG(TR_CallTarget *calltarget, TR_CallStack *prevCallStack
        // DONE!
 
       }
+*/
 
 
 
