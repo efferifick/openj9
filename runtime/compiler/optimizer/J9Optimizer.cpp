@@ -51,6 +51,8 @@
 #include "optimizer/PartialRedundancy.hpp"
 #include "optimizer/ProfileGenerator.hpp"
 #include "optimizer/SelectInliner.hpp"
+#include "optimizer/BenefitInliner.hpp"
+#include "optimizer/SelectOpt.hpp"
 #include "optimizer/SequentialStoreSimplifier.hpp"
 #include "optimizer/SignExtendLoads.hpp"
 #include "optimizer/StringBuilderTransformer.hpp"
@@ -83,7 +85,7 @@ static const OptimizationStrategy J9EarlyGlobalOpts[] =
    { OMR::stringBuilderTransformer             },
    { OMR::stringPeepholes                      }, // need stringpeepholes to catch bigdecimal patterns
    { OMR::methodHandleInvokeInliningGroup,  OMR::IfMethodHandleInvokes },
-   { OMR::selectInliner                        },
+   { OMR::inlining                             },
    { OMR::osrGuardInsertion,                OMR::IfVoluntaryOSR       },
    { OMR::osrExceptionEdgeRemoval                       }, // most inlining is done by now
    { OMR::jProfilingBlock                      },
@@ -249,7 +251,7 @@ static const OptimizationStrategy coldStrategyOpts[] =
    { OMR::coldBlockOutlining                                                    },
    { OMR::stringBuilderTransformer,                  OMR::IfNotQuickStart            },
    { OMR::stringPeepholes,                           OMR::IfNotQuickStart            }, // need stringpeepholes to catch bigdecimal patterns
-   { OMR::selectInliner                                                         },
+   { OMR::trivialInlining                                                       },
    { OMR::jProfilingBlock                                                       },
    { OMR::virtualGuardTailSplitter                                              },
    { OMR::recompilationModifier,                     OMR::IfEnabled                  },
@@ -299,7 +301,7 @@ static const OptimizationStrategy warmStrategyOpts[] =
    { OMR::stringBuilderTransformer                                              },
    { OMR::stringPeepholes                                                       }, // need stringpeepholes to catch bigdecimal patterns
    { OMR::methodHandleInvokeInliningGroup,                OMR::IfMethodHandleInvokes },
-   { OMR::selectInliner                                                        },
+   { OMR::inlining                                                             },
    { OMR::osrGuardInsertion,                         OMR::IfVoluntaryOSR       },
    { OMR::osrExceptionEdgeRemoval                       }, // most inlining is done by now
    { OMR::jProfilingBlock                                                       },
@@ -379,7 +381,7 @@ static const OptimizationStrategy warmStrategyOpts[] =
 //
 static const OptimizationStrategy reducedWarmStrategyOpts[] =
    {
-   { OMR::selectInliner                                                        },
+   { OMR::inlining                                                              },
    { OMR::osrGuardInsertion,                         OMR::IfVoluntaryOSR       },
    { OMR::osrExceptionEdgeRemoval                                               }, // most inlining is done by now
    { OMR::jProfilingBlock                                                       },
@@ -641,7 +643,7 @@ static const OptimizationStrategy cheapWarmStrategyOpts[] =
    { OMR::stringBuilderTransformer                                              },
    { OMR::stringPeepholes                                                       }, // need stringpeepholes to catch bigdecimal patterns
    { OMR::methodHandleInvokeInliningGroup,           OMR::IfMethodHandleInvokes      },
-   { OMR::selectInliner                                                              },
+   { OMR::inlining                                                              },
    { OMR::osrGuardInsertion,                         OMR::IfVoluntaryOSR       },
    { OMR::osrExceptionEdgeRemoval                                               }, // most inlining is done by now
    { OMR::jProfilingBlock                                                       },
@@ -739,13 +741,13 @@ J9::Optimizer::Optimizer(TR::Compilation *comp, TR::ResolvedMethodSymbol *method
    // initialize additional J9 optimizations
 
    _opts[OMR::inlining] =
-      new (comp->allocator()) TR::OptimizationManager(self(), TR_Inliner::create, OMR::inlining);
+      new (comp->allocator()) TR::OptimizationManager(self(), TR::SelectOpt<TR_EnableBenefitInliner, OMR::BenefitInlinerWrapper, TR_Inliner>::create, OMR::inlining);
    _opts[OMR::targetedInlining] =
       new (comp->allocator()) TR::OptimizationManager(self(), TR_Inliner::create, OMR::targetedInlining);
    _opts[OMR::targetedInlining]->setOptPolicy(new (comp->allocator()) TR_J9JSR292InlinerPolicy(comp));
 
    _opts[OMR::trivialInlining] =
-      new (comp->allocator()) TR::OptimizationManager(self(), TR_TrivialInliner::create, OMR::trivialInlining);
+      new (comp->allocator()) TR::OptimizationManager(self(), TR::SelectOpt<TR_EnableBenefitInliner, OMR::BenefitInlinerWrapper, TR_TrivialInliner>::create, OMR::trivialInlining);
 
    _opts[OMR::dynamicLiteralPool] =
       new (comp->allocator()) TR::OptimizationManager(self(), TR_DynamicLiteralPool::create, OMR::dynamicLiteralPool);
