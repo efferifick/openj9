@@ -642,7 +642,7 @@ void J9FASTCALL _jitProfileStringValue(uintptrj_t value, int32_t charsOffset, in
       {
       readValues = true;
 
-#if defined(J9VM_GC_COMPRESSED_POINTERS)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
       J9JavaVM *jvm = jitConfig->javaVM;
       if (!jvm)
          return;
@@ -1136,6 +1136,9 @@ JIT_HELPER(_countingRecompileMethod);
 JIT_HELPER(_induceRecompilation);
 JIT_HELPER(_revertToInterpreterGlue);
 
+#elif defined(TR_HOST_ARM64)
+JIT_HELPER(_revertToInterpreterGlue);
+
 #elif defined(TR_HOST_S390)
 
 JIT_HELPER(_countingRecompileMethod);
@@ -1238,6 +1241,9 @@ void initializeJitRuntimeHelperTable(char isSMP)
    SET(TR_ARMcountingPatchCallSite,             (void *)_countingPatchCallSite,   TR_Helper);
    SET(TR_ARMinduceRecompilation,               (void *)_induceRecompilation,     TR_Helper);
    SET(TR_ARMrevertToInterpreterGlue,           (void *)_revertToInterpreterGlue, TR_Helper);
+
+#elif defined(TR_HOST_ARM64)
+   SET(TR_ARM64revertToInterpreterGlue,           (void *)_revertToInterpreterGlue, TR_Helper);
 
 #elif defined(TR_HOST_S390)
    SET(TR_S390samplingRecompileMethod,          (void *)_samplingRecompileMethod,   TR_Helper);

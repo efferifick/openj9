@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2018 IBM Corp. and others
+ * Copyright (c) 2000, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -25,6 +25,7 @@
 #include "codegen/CodeGenerator.hpp"
 #include "codegen/Machine.hpp"
 #include "codegen/Linkage.hpp"
+#include "codegen/Linkage_inlines.hpp"
 #include "codegen/Snippet.hpp"
 #include "codegen/PreprologueConst.hpp"
 #include "compile/ResolvedMethod.hpp"
@@ -211,7 +212,7 @@ void TR_X86Recompilation::setMethodReturnInfoBits()
    if (!couldBeCompiledAgain())
       return;
 
-   // Sets up bits inside the likage info field of the method.  Linkage info
+   // Sets up bits inside the linkage info field of the method.  Linkage info
    // is the dword immediately before the startPC
    //
    // The bits contain information about a) what kind of method header this

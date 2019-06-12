@@ -873,7 +873,7 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 #if defined (LINUXPPC64) || (defined (AIXPPC) && defined (PPC64)) || defined (J9ZOS39064)
 		/* there was a bug in Sovereign VMs on these platforms where jsize was defined to
 		 * be 64-bits, rather than the 32-bits required by the JNI spec. Provide backwards
-		 * compatability if the JAVA_JSIZE_COMPAT environment variable is set
+		 * compatibility if the JAVA_JSIZE_COMPAT environment variable is set
 		 */
 		if (getenv("JAVA_JSIZE_COMPAT")) {
 			*(jlong*)nVMs = (jlong)0;
@@ -891,7 +891,7 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 /**
  *	jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *vm_args)
  *  Return a default configuration for the java virtual machine
- *  implementaiton.
+ *  implementation.
  *	This provides an invocation API that runs the J9 VM in BFU/sidecar mode
  *
  *  @param vm_args pointer to a vm-specific initialization structure
@@ -927,8 +927,12 @@ JNI_GetDefaultJavaVMInitArgs(void *vm_args)
 			|| (jniVersion == JNI_VERSION_1_4)
 			|| (jniVersion == JNI_VERSION_1_6)
 			|| (jniVersion == JNI_VERSION_1_8)
+#if JAVA_SPEC_VERSION >= 9
 			|| (jniVersion == JNI_VERSION_9)
+#endif /* JAVA_SPEC_VERSION >= 9 */
+#if JAVA_SPEC_VERSION >= 10
 			|| (jniVersion == JNI_VERSION_10)
+#endif /* JAVA_SPEC_VERSION >= 10 */
 		) {
 			return JNI_OK;
 		} else {
@@ -1211,7 +1215,7 @@ getjvmBin(BOOLEAN removeSubdir)
 		/* remove jvm.dll */
 		truncatePath(jvmBufferData(buffer), FALSE);
 	}
-	/* remove jvm.dll or classis */
+	/* remove jvm.dll or classes */
 	truncatePath(jvmBufferData(buffer), TRUE);
 
 	return buffer;
@@ -1361,7 +1365,7 @@ isFileInDir(char *dir, char *file)
 	char *fullpath;
 	FILE *f;
 
-	/* Constuct 'full' path */
+	/* Construct 'full' path */
 	if (dir[strlen(dir)-1] == DIR_SLASH_CHAR) {
 		/* remove trailing DIR_SLASH_CHAR */
 		dir[strlen(dir)-1] = '\0';

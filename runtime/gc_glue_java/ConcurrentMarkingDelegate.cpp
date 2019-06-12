@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2018 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -38,7 +38,7 @@
  * Concurrents stack slot iterator.
  * Called for each slot in a threads active stack frames which contains a object reference.
  *
- * @param objectInidrect
+ * @param objectIndirect
  * @param localdata
  * @param isDerivedPointer
  * @param objectIndirectBase
@@ -417,7 +417,7 @@ MM_ConcurrentMarkingDelegate::concurrentClassMark(MM_EnvironmentBase *env, bool 
 				J9HashTableState walkState;
 				/*
 				 * We believe that (NULL == classLoader->classHashTable) is set ONLY for DEAD class loader
-				 * so, if this pointer happend to be NULL at this point let it crash here
+				 * so, if this pointer happened to be NULL at this point let it crash here
 				 */
 				Assert_MM_true(NULL != classLoader->classHashTable);
 				clazz = _javaVM->internalVMFunctions->hashClassTableStartDo(classLoader, &walkState);

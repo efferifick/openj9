@@ -723,7 +723,7 @@ VM_MHInterpreter::impdep1()
 		_currentThread->arg0EA = UNTAGGED_A0(mtFrame);
 		_currentThread->sp = mhPtr - guardArgSlots;
 
-		/* Overwrite inital GWT_Handle with either GWT_Handle.trueTarget or GWT_Handle.falseTarget based upon testHandleReturnValue */
+		/* Overwrite initial GWT_Handle with either GWT_Handle.trueTarget or GWT_Handle.falseTarget based upon testHandleReturnValue */
 		j9object_t nextHandle = NULL;
 
 		if (0 == testReturnValue) {
@@ -1455,7 +1455,7 @@ VM_MHInterpreter::replaceReturnValueForFilterArgumentsWithCombiner()
 	j9object_t combinerType = getMethodHandleMethodType(combinerHandle);
 	j9object_t combinerReturnType = J9VMJAVALANGINVOKEMETHODTYPE_RETURNTYPE(_currentThread, combinerType);
 	J9Class *combinerReturnTypeClass = J9VM_J9CLASS_FROM_HEAPCLASS(_currentThread, combinerReturnType);
-	UDATA combinerReturnSlots = 1;
+	U_32 combinerReturnSlots = 1;
 	UDATA combinerReturnValue0 = _currentThread->sp[0];
 	UDATA combinerReturnValue1 = 0;
 	if ((_vm->doubleReflectClass == combinerReturnTypeClass) || (_vm->longReflectClass == combinerReturnTypeClass)) {

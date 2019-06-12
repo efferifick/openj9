@@ -39,6 +39,7 @@ namespace J9 { typedef J9::CodeGenerator CodeGeneratorConnector; }
 #include "env/IO.hpp"
 #include "env/jittypes.h"
 #include "infra/List.hpp"
+#include "infra/HashTab.hpp"
 #include "codegen/RecognizedMethods.hpp"
 #include "control/Recompilation.hpp"
 #include "control/RecompilationInfo.hpp"
@@ -82,6 +83,8 @@ public:
    void moveUpArrayLengthStores(TR::TreeTop *insertionPoint);
 
    void doInstructionSelection();
+
+   void createReferenceReadBarrier(TR::TreeTop* treeTop, TR::Node* parent);
 
    // OSR, not code generator
    void populateOSRBuffer();
@@ -150,6 +153,7 @@ public:
    bool needRelocationsForStatics();
 
    // ----------------------------------------
+   TR::Node *createOrFindClonedNode(TR::Node *node, int32_t numChildren);
 
    void jitAddUnresolvedAddressMaterializationToPatchOnClassRedefinition(void *firstInstruction);
 
@@ -265,6 +269,8 @@ public:
    TR_BitVector *setLiveMonitors(TR_BitVector *v) {return (_liveMonitors = v);}
 
 private:
+
+   TR_HashTabInt _uncommonedNodes;               // uncommoned nodes keyed by the original nodes
 
    uint16_t changeParmLoadsToRegLoads(TR::Node*node, TR::Node **regLoads, TR_BitVector *globalRegsWithRegLoad, TR_BitVector &killedParms, vcount_t visitCount); // returns number of RegLoad nodes created
 

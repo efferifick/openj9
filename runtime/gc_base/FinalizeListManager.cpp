@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 1991, 2014 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -52,7 +52,7 @@ GC_FinalizeListManager::unlock() const
 }
 
 /**
- * create and intialize with defaults new instance of FinalizeListManager
+ * create and initialize with defaults new instance of FinalizeListManager
  * @return Pointer to FinalizeListmanager if initialisation succesful, NULL otherwise
  */
 GC_FinalizeListManager *
@@ -73,7 +73,7 @@ GC_FinalizeListManager::newInstance(MM_EnvironmentBase *env)
 }
 
 /**
- * deinitalize the instance of FinalizeListManager and deallocate the memory
+ * deinitialize the instance of FinalizeListManager and deallocate the memory
  */
 void
 GC_FinalizeListManager::kill(MM_EnvironmentBase *env)
@@ -83,7 +83,7 @@ GC_FinalizeListManager::kill(MM_EnvironmentBase *env)
 } 
 
 /**
- * initalize with deafault values and create the mutex
+ * initialize with default values and create the mutex
  * @return true if initialisation succesful, false otherwise.
  */
 bool

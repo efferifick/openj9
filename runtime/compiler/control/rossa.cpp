@@ -197,6 +197,7 @@ char *compilationErrorNames[]={
    "compilationEnforceProfiling", //49
    "compilationSymbolValidationManagerFailure", //50
    "compilationAOTNoSupportForAOTFailure", //51
+   "compilationAOTValidateTMFailure", //52
    "compilationMaxError"
 };
 
@@ -1106,7 +1107,7 @@ onLoadInternal(
    if (!feWithoutThread)
       return -1;
 
-   /*aotmcc-move it here from below !!!! this is after the jitConfig->runtimeFlas=AOT is set*/
+   /*aotmcc-move it here from below !!!! this is after the jitConfig->runtimeFlags=AOT is set*/
    /*also jitConfig->javaVM = javaVM has to be set for the case we run j9.exe -Xnoaot ....*/
    J9VMThread *curThread = javaVM->internalVMFunctions->currentVMThread(javaVM);
    TR_J9VMBase * fe = TR_J9VMBase::get(jitConfig, curThread);
@@ -1424,7 +1425,7 @@ onLoadInternal(
 #ifdef TR_TARGET_S390
    // Need to let VM know that we will be using a machines vector facility (so it can save/restore preserved regs),
    // early in JIT startup to prevent subtle FP bugs
-   if (TR::Compiler->target.cpu.getS390SupportsVectorFacility() && !TR::Options::getCmdLineOptions()->getOption(TR_DisableSIMD))
+   if (TR::Compiler->target.cpu.getSupportsVectorFacility() && !TR::Options::getCmdLineOptions()->getOption(TR_DisableSIMD))
       {
       javaVM->extendedRuntimeFlags |= J9_EXTENDED_RUNTIME_USE_VECTOR_REGISTERS;
       }
@@ -1523,15 +1524,16 @@ onLoadInternal(
    if (TR::Options::_hwProfilerEnabled == TR_yes)
       {
 #if defined(TR_HOST_S390) && defined(BUILD_Z_RUNTIME_INSTRUMENTATION)
-      if (TR::Compiler->target.cpu.getS390SupportsRI())
+      if (TR::Compiler->target.cpu.getSupportsRuntimeInstrumentationFacility())
          ((TR_JitPrivateConfig*)(jitConfig->privateConfig))->hwProfiler = TR_ZHWProfiler::allocate(jitConfig);
 #elif defined(TR_HOST_POWER)
-#if !defined(J9OS_I5_V6R1) && !defined(J9OS_I5_V7R2) /* We may support it since i 7.3. */
+#if !defined(J9OS_I5) 
+/* We disable it on current releases. May enable in future. */
       TR_Processor processor = portLibCall_getProcessorType();
       ((TR_JitPrivateConfig*)(jitConfig->privateConfig))->hwProfiler = processor >= TR_PPCp8 ? TR_PPCHWProfiler::allocate(jitConfig) : NULL;
 #else
       ((TR_JitPrivateConfig*)(jitConfig->privateConfig))->hwProfiler = NULL;
-#endif /* !defined(J9OS_I5_V6R1) && !defined(J9OS_I5_V7R2) */
+#endif /* !defined(J9OS_I5) */
 #endif
 
       //Initialize VM support for RI.
@@ -1561,7 +1563,7 @@ onLoadInternal(
       }
 
 #if defined(TR_HOST_S390)
-   if (TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads())
+   if (TR::Compiler->om.readBarrierType() != gc_modron_readbar_none)
       {
       // TODO (Guarded Storage): With the change to prevent lower trees, there's
       // an outstanding DLT issue where a LLGFSG is generated when loading the

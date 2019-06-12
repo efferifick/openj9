@@ -1,4 +1,4 @@
-# Copyright (c) 1998, 2018 IBM Corp. and others
+# Copyright (c) 1998, 2019 IBM Corp. and others
 #
 # This program and the accompanying materials are made available under
 # the terms of the Eclipse Public License 2.0 which accompanies this
@@ -100,14 +100,6 @@ CXXFLAGS+=-DOPENJ9_BUILD
 CPPFLAGS+=-DOPENJ9_BUILD
 endif
 
-ifdef UMA_SP_CFLAGS
-CFLAGS += $(UMA_SP_CFLAGS)
-CXXFLAGS += $(UMA_SP_CFLAGS)
-<#if !uma.spec.type.windows>
-CPPFLAGS += $(UMA_SP_CFLAGS)
-</#if>
-endif
-
 # Declare the 'all' target
 
 TARGETS+=$(UMA_LIBTARGET) $(UMA_DLLTARGET) $(UMA_EXETARGET)
@@ -199,6 +191,7 @@ CXXFLAGS+=$(UMA_C_INCLUDES)
 CPPFLAGS+=$(UMA_C_INCLUDES)
 
 UMA_LINK_PATH += $(foreach d,$(TPF_ROOT),-L$d/base/lib)
+UMA_LINK_PATH += $(foreach d,$(TPF_ROOT),-L$d/base/stdlib)
 UMA_LINK_PATH += $(foreach d,$(TPF_ROOT),-L$d/opensource/stdlib)
 
 </#if>
@@ -397,7 +390,7 @@ DDR_SED_COMMAND := \
 
 </#if>
 <#if !(uma.spec.type.aix || uma.spec.type.zos)>
-# compileation rule for .asm files
+# compilation rule for .asm files
 <#if uma.spec.type.windows>
 %$(UMA_DOT_O): %.asm
 	$(AS) $(ASFLAGS) $<

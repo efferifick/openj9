@@ -529,6 +529,13 @@ internalLoadROMClass(J9VMThread * vmThread, J9LoadROMClassData *loadData, J9Tran
 	if (J9_ARE_ANY_BITS_SET(vm->runtimeFlags, J9_RUNTIME_ALWAYS_SPLIT_BYTECODES)) {
 		translationFlags |= BCT_AlwaysSplitBytecodes;
 	}
+	if (J9_ARE_ANY_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_PREVIEW)) {
+		translationFlags |= BCT_EnablePreview;
+	}
+
+	if (J9_ARE_ALL_BITS_SET(vm->extendedRuntimeFlags2, J9_EXTENDED_RUNTIME2_ENABLE_VALHALLA)) {
+		translationFlags |= BCT_ValueTypesEnabled;
+	}
 
 	/* Determine allowed class file version */
 #ifdef J9VM_OPT_SIDECAR

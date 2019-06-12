@@ -53,19 +53,6 @@
 #include "env/IO.hpp"
 #include "runtime/HookHelpers.hpp"
 
-
-/*
- *  *  Debugging help
- *   */
-#ifdef CODECACHE_DEBUG
-#define mcc_printf if (CodeCacheDebug) printf
-#define mcc_hashprintf /*printf*/
-#else
-#define mcc_printf
-#define mcc_hashprintf
-#endif
-
-
 OMR::CodeCacheMethodHeader *getCodeCacheMethodHeader(char *p, int searchLimit, J9JITExceptionTable * metaData);
 
 #define addFreeBlock2(start, end) addFreeBlock2WithCallSite((start), (end), __FILE__, __LINE__)
@@ -661,21 +648,13 @@ J9::CodeCache::reserveUnresolvedTrampoline(void *cp, int32_t cpIndex)
       OMR::CodeCacheHashEntry *entry = _unresolvedMethodHT->findUnresolvedMethod(cp, cpIndex);
       if (!entry)
          {
-         // don't have any reservation for this particular name/classLoader, make one
-         OMR::CodeCacheTrampolineCode *trampoline = self()->reserveSpaceForTrampoline();
-         if (trampoline)
+         // There isn't a reservation for this particular name/classLoader, make one
+         //
+         retValue = self()->reserveSpaceForTrampoline_bridge();
+         if (retValue == OMR::CodeCacheErrorCode::ERRORCODE_SUCCESS)
             {
             if (!self()->addUnresolvedMethod(cp, cpIndex))
                retValue = OMR::CodeCacheErrorCode::ERRORCODE_FATALERROR; // couldn't allocate memory from VM
-            }
-         else // no space in this code cache; must allocate a new one
-            {
-            _almostFull = TR_yes;
-            retValue = OMR::CodeCacheErrorCode::ERRORCODE_INSUFFICIENTSPACE;
-            if (config.verboseCodeCache())
-               {
-               TR_VerboseLog::writeLineLocked(TR_Vlog_CODECACHE, "CodeCache %p marked as full in reserveUnresolvedTrampoline", this);
-               }
             }
          }
       }

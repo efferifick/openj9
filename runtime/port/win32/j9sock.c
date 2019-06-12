@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2018 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -782,7 +782,7 @@ retry:
 			internalCloseSocket(portLibrary, sock, FALSE );
 		}
 		else {	
-			/* we don't acutally want to close the sockets as connect can be called again on a datagram socket  but we 
+			/* we don't actually want to close the sockets as connect can be called again on a datagram socket  but we 
 			    still need to set the flag that tells us which socket to use */
 			sock->flags = sock->flags | SOCKET_USE_IPV4_MASK;
 		}
@@ -808,7 +808,7 @@ retry:
 		}
 
 		/* for windows it seems to want to have it connect with an IN_ADDR any instead of with an 
-		   UNSPEC familty type so lets be accomodating */
+		   UNSPEC family type so lets be accommodating */
 
 
 		/* we need to disconnect on both sockets and swallow any expected errors */
@@ -2127,7 +2127,7 @@ j9sock_ipmreq_init(struct J9PortLibrary *portLibrary, j9ipmreq_t handle, uint32_
  * @param[in] portLibrary The port library.
  * @param[out] handle A pointer to the j9ipv6_mreq_struct to populate.
  * @param[in] ipmcast_addr The ip mulitcast address.
- * @param[in] ipv6mr_interface The ip mulitcast inteface.
+ * @param[in] ipv6mr_interface The ip mulitcast interface.
  *
  * @return	0, if no errors occurred, otherwise the (negative) error code.
  *
@@ -3771,7 +3771,7 @@ addAdapterIpv6(struct J9PortLibrary *portLibrary, struct j9NetworkInterface_stru
 
 	/* now get the interface information */
 
-	/* first count the number of IP addreses and allocate the memory required for the ip address info that will be returned*/
+	/* first count the number of IP addresses and allocate the memory required for the ip address info that will be returned*/
 	numAddresses = 0;
 	currentIPAddress = currentAdapter->FirstUnicastAddress;
 	while(currentIPAddress) {
@@ -3920,7 +3920,7 @@ addAdapterIpv4(struct J9PortLibrary *portLibrary, struct j9NetworkInterface_stru
 
 	/* now get the interface information */
 
-	/* first count the number of IP addreses and allocate the memory required for the ip address info that will be returned*/
+	/* first count the number of IP addresses and allocate the memory required for the ip address info that will be returned*/
 	numAddresses = 0;
 	currentIPAddress = &(currentAdapter->IpAddressList);
 	while(currentIPAddress) {

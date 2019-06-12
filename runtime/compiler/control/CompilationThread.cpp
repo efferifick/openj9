@@ -581,8 +581,8 @@ TR::CompilationInfo::createCompilationInfo(J9JITConfig * jitConfig)
       {
       TR::RawAllocator rawAllocator(jitConfig->javaVM);
       void * alloc = rawAllocator.allocate(sizeof(TR::CompilationInfo));
-      /* FIXME: Replace this with the appropriate intializers in the constructor */
-      /* Note: there are embbeded objects in TR::CompilationInfo that rely on the fact
+      /* FIXME: Replace this with the appropriate initializers in the constructor */
+      /* Note: there are embedded objects in TR::CompilationInfo that rely on the fact
          that we do memset this object to 0 */
       memset(alloc, 0, sizeof(TR::CompilationInfo));
       _compilationRuntime = new (alloc) TR::CompilationInfo(jitConfig);
@@ -994,7 +994,12 @@ TR_YesNoMaybe TR::CompilationInfo::detectCompThreadStarvation()
 
    // If there are idle cycles on the CPU set where this JVM can run
    // then the compilation threads should be able to use those cycles
-   // (if (idle > 10%) return 0
+   // The following is just an approximation because we look at idle
+   // cyles on the entire machine
+   if (getCpuUtil()->isFunctional() &&
+      getCpuUtil()->getCpuIdle() > 5 && // This is for the entire machine
+      getCpuUtil()->getVmCpuUsage() + 10 < getJvmCpuEntitlement()) // at least 10% unutilized by this JVM
+      return TR_no;
 
    // Large queue and small CPU utilization for the compilation thread
    // is a sign of compilation thread starvation
@@ -1221,7 +1226,7 @@ TR::CompilationInfo::disableAOTCompilations()
 #endif
 
 
-#if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM))
+#if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
 
 // Note: this method must be called only when we know that AOT mode for shared classes is enabled !!
 bool TR::CompilationInfo::isRomClassForMethodInSharedCache(J9Method *method, J9JavaVM *javaVM)
@@ -1657,7 +1662,7 @@ void TR::CompilationInfo::invalidateRequestsForUnloadedMethods(TR_OpaqueClassBlo
       TR_ASSERT(curCompThreadInfoPT, "a thread's compinfo is missing\n");
 
       TR_MethodToBeCompiled *methodBeingCompiled = curCompThreadInfoPT->getMethodBeingCompiled();
-      // Mark the method beign compiled that it has been unloaded.
+      // Mark the method being compiled that it has been unloaded.
       // If it is already marked, then there is nothing to do.
       //
       if (methodBeingCompiled && !methodBeingCompiled->_unloadedMethod)
@@ -1692,7 +1697,7 @@ void TR::CompilationInfo::invalidateRequestsForUnloadedMethods(TR_OpaqueClassBlo
             }
          }
       } // end for
-   // if compilin on app thread, there is no compilation queue
+   // if compiling on app thread, there is no compilation queue
    TR_MethodToBeCompiled *cur  = _methodQueue;
    TR_MethodToBeCompiled *prev = NULL;
    bool verboseDetails = TR::Options::getCmdLineOptions()->getVerboseOption(TR_VerboseHookDetails);
@@ -1798,6 +1803,7 @@ bool TR::CompilationInfo::shouldRetryCompilation(TR_MethodToBeCompiled *entry, T
             case compilationAotValidateStringCompressionFailure:
             case compilationSymbolValidationManagerFailure:
             case compilationAOTNoSupportForAOTFailure:
+            case compilationAOTValidateTMFailure:
                // switch to JIT for these cases (we don't want to relocate again)
                entry->_doNotUseAotCodeFromSharedCache = true;
                tryCompilingAgain = true;
@@ -2319,7 +2325,7 @@ TR::CompilationInfoPerThread* TR::CompilationInfo::getCompInfoForThread(J9VMThre
 //-------------------------- startCompilationThread --------------------------
 // Start ONE compilation thread and initialize the associated
 // TR::CompilationInfoPerThread structure
-// This function returns immediatelly after the thread is created
+// This function returns immediately after the thread is created
 // Parameters:
 //   priority - the desired priority of the thread (0..5); negative number
 //               means that the priority will be computed automatically
@@ -3067,7 +3073,7 @@ IDATA J9THREAD_PROC compilationThreadProc(void *entryarg)
    // It is possible that the shutdown signal came before this thread has had the time
    // to become fully initialized. If that's the case, the state will appear as STOPPING
    // instead of UNINITIALIZED. This can happen when we destroy the cache; the java app
-   // starts and finishes immediatelly
+   // starts and finishes immediately
    if (compInfoPT->getCompilationThreadState() == COMPTHREAD_SIGNAL_TERMINATE)
       {
       compInfoPT->setCompilationThreadState(COMPTHREAD_STOPPING);
@@ -4529,7 +4535,7 @@ TR::CompilationInfo::getNextMethodToBeCompiled(TR::CompilationInfoPerThread *com
    if (_methodQueue)
       {
       // If the request is sync or AOT load or InstantReplay, take it now
-      if (compInfoPT->isDiagnosticThread() || // InstantReplay compilations must be processed immediatelly
+      if (compInfoPT->isDiagnosticThread() || // InstantReplay compilations must be processed immediately
          _methodQueue->_priority >= CP_SYNC_MIN ||       // sync comp
          _methodQueue->_methodIsInSharedCache == TR_yes) // very cheap relocation
          {
@@ -4794,7 +4800,7 @@ void *TR::CompilationInfo::startPCIfAlreadyCompiled(J9VMThread * vmThread, TR::I
    if (!oldStartPC)
       {
       // first compilation of the method: J9Method would be updated if the
-      // compilatoin has already taken place
+      // compilation has already taken place
       //
       if (isCompiled(method))
          startPC = getJ9MethodStartPC(method);
@@ -5250,7 +5256,7 @@ void *TR::CompilationInfo::compileOnSeparateThread(J9VMThread * vmThread, TR::Il
                  ((!TR::Options::getCmdLineOptions()->getOption(TR_DisableDFP) || !TR::Options::getAOTCmdLineOptions()->getOption(TR_DisableDFP)) &&
                   (TR::Compiler->target.cpu.supportsDecimalFloatingPoint()
 #ifdef TR_TARGET_S390
-                  || TR::Compiler->target.cpu.getS390SupportsDFP()
+                  || TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility()
 #endif
                   ) && TR_J9MethodBase::isBigDecimalMethod((J9Method *)method))))
                 async = false;
@@ -5844,7 +5850,7 @@ TR::CompilationInfoPerThreadBase::outputVerboseMMapEntries(
 #pragma option_override(TR::CompilationInfo::compile(J9VMThread *, TR_MethodToBeCompiled *, bool), "OPT(SPILL,256)")
 #endif
 
-#if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM))
+#if defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
 TR_MethodMetaData *
 TR::CompilationInfoPerThreadBase::installAotCachedMethod(
    J9VMThread *vmThread,
@@ -6002,7 +6008,7 @@ TR::CompilationInfoPerThreadBase::installAotCachedMethod(
       }
    return metaData;
    }
-#endif // defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM))
+#endif // defined(J9VM_INTERP_AOT_RUNTIME_SUPPORT) && defined(J9VM_OPT_SHARED_CLASSES) && (defined(TR_HOST_X86) || defined(TR_HOST_POWER) || defined(TR_HOST_S390) || defined(TR_HOST_ARM) || defined(TR_HOST_ARM64))
 
 //--------------- queueAOTUpgrade ----------
 // The entry currently being processed will be cloned with the clone being an upgrade
@@ -6392,7 +6398,7 @@ TR::CompilationInfoPerThreadBase::preCompilationTasks(J9VMThread * vmThread,
                   (
                   TR::Compiler->target.cpu.supportsDecimalFloatingPoint()
 #ifdef TR_TARGET_S390
-                  || TR::Compiler->target.cpu.getS390SupportsDFP()
+                  || TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility()
 #endif
                   ) &&
                   TR_J9MethodBase::isBigDecimalMethod(method)
@@ -7451,6 +7457,14 @@ TR::CompilationInfoPerThreadBase::wrappedCompile(J9PortLibrary *portLib, void * 
                   options->setOption(TR_EnableGRACostBenefitModel, false);
                }
 
+            // Disable AOT w/ SVM during startup
+            if (jitConfig->javaVM->phase != J9VM_PHASE_NOT_STARTUP)
+               {
+               static char *dontDisableSVMDuringStartup = feGetEnv("TR_DontDisableSVMDuringStartup");
+               if (!dontDisableSVMDuringStartup)
+                  options->setOption(TR_UseSymbolValidationManager, false);
+               }
+
             // See if we need to inset GCR trees
             if (!details.supportsInvalidation())
                {
@@ -8267,7 +8281,7 @@ TR::CompilationInfoPerThreadBase::compile(
          // FAR: should we do postpone this copying until after CHTable commit?
          metaData->runtimeAssumptionList = *(compiler->getMetadataAssumptionList());
 
-         // We don't need to delete the metadataAsumptionList from the compilation object,
+         // We don't need to delete the metadataAssumptionList from the compilation object,
          // and in fact it would be wrong to do so because code during chtable.commit is
          // expecting something in the compiler object
          }
@@ -11066,7 +11080,7 @@ TR::CompilationInfo::scheduleLPQAndBumpCount(TR::IlGeneratorMethodDetails &detai
    // If method is found, move it to main queue
    // We prevent concurrency issues by making sure the invocation count is 0 when adding to LPQ
    // We must make sure that if the method is not found in LPQ there is absolutely no way
-   // it can be present in main queue (invocation count being 0 should guatantee us that
+   // it can be present in main queue (invocation count being 0 should guarantee us that
    // because a method waiting in main queue should be marked QUEUED_FOR_COMPILATION)
    // We should put an assert that all ordinary async first time compilations in the main
    // queue are marked QUEUED_FOR_COMPILATION

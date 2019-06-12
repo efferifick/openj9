@@ -260,6 +260,8 @@ JIT_PRODUCT_SOURCE_FILES+=\
     compiler/codegen/J9Instruction.cpp \
     compiler/codegen/J9Snippet.cpp \
     compiler/codegen/J9TreeEvaluator.cpp \
+    compiler/codegen/J9WatchedInstanceFieldSnippet.cpp \
+    compiler/codegen/J9WatchedStaticFieldSnippet.cpp \
     compiler/codegen/MonitorState.cpp \
     compiler/compile/J9AliasBuilder.cpp \
     compiler/compile/J9Compilation.cpp \
@@ -311,6 +313,7 @@ JIT_PRODUCT_SOURCE_FILES+=\
     compiler/il/J9Node.cpp \
     compiler/il/J9SymbolReference.cpp \
     compiler/il/symbol/J9MethodSymbol.cpp \
+    compiler/il/symbol/J9ResolvedMethodSymbol.cpp \
     compiler/il/symbol/J9StaticSymbol.cpp \
     compiler/il/symbol/J9Symbol.cpp \
     compiler/ilgen/ClassLookahead.cpp \

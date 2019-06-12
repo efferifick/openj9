@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2018 IBM Corp. and others
+ * Copyright (c) 2000, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -405,7 +405,7 @@ J9::Node::processJNICall(TR::TreeTop * callNodeTreeTop, TR::ResolvedMethodSymbol
 
       // For JNI thunks cp index is -1
       // passing cpIndex = -1 to findOrCreateClassSymbol shouldn't be an issue as it will figure out the address from resolvedMethod->containingClass()
-      // we only need cpIndex for relocations in AOT and compiling JNI thunks is disbale in AOT
+      // we only need cpIndex for relocations in AOT and compiling JNI thunks is disable in AOT
       int32_t classCP = (callerCP != -1) ? callerSymbol->getResolvedMethod()->classCPIndexOfMethod(callerCP) : -1;
 
       TR_ASSERT ((callerCP != -1 || callerSymbol->isNative()), "Cannot have cp index -1 for JNI calls other than JNI thunks.\n");
@@ -555,7 +555,7 @@ J9::Node::hasIntermediateTruncation()
  * The shiftedPrecision is 5-1 = 4 and this > than the nodePrec of 3.
  * There is 1 truncated digit so reduce the shiftedPrecision by 1 to get the surviving digits value of 3.
  *
- * @note that the shift forumla for surviving digits degenerates to just getDecimalPrecision() when adjust == 0
+ * @note that the shift formula for surviving digits degenerates to just getDecimalPrecision() when adjust == 0
  */
 int32_t
 J9::Node::survivingDigits()

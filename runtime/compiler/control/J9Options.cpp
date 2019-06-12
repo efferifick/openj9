@@ -304,7 +304,7 @@ qualifiedSize(UDATA *byteSize, char **qualifier)
 bool
 J9::Options::useCompressedPointers()
    {
-#if defined(J9VM_GC_COMPRESSED_POINTERS)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    return true;
 #else
    return false;
@@ -1091,32 +1091,15 @@ J9::Options::fePreProcess(void * base)
    TR::Compiler->host.setSMP(true);
    TR::Compiler->target.setSMP(true);
 
-   TR_WriteBarrierKind wrtbarMode = TR_WrtbarOldCheck;
-
    J9MemoryManagerFunctions * mmf = vm->memoryManagerFunctions;
+#if defined(J9VM_GC_HEAP_CARD_TABLE)
    if (!fe->isAOT_DEPRECATED_DO_NOT_USE())
       {
-      switch (mmf->j9gc_modron_getWriteBarrierType(vm))
-         {
-         case j9gc_modron_wrtbar_none:                   wrtbarMode = TR_WrtbarNone; break;
-         case j9gc_modron_wrtbar_always:                 wrtbarMode = TR_WrtbarAlways; break;
-         case j9gc_modron_wrtbar_oldcheck:               wrtbarMode = TR_WrtbarOldCheck; break;
-         case j9gc_modron_wrtbar_cardmark:               wrtbarMode = TR_WrtbarCardMark; break;
-         case j9gc_modron_wrtbar_cardmark_and_oldcheck:  wrtbarMode = TR_WrtbarCardMarkAndOldCheck; break;
-         case j9gc_modron_wrtbar_cardmark_incremental:   wrtbarMode = TR_WrtbarCardMarkIncremental; break;
-         case j9gc_modron_wrtbar_satb:
-         case j9gc_modron_wrtbar_satb_and_oldcheck:      wrtbarMode = TR_WrtbarRealTime; break;
-         }
-
-#if defined(J9VM_GC_HEAP_CARD_TABLE)
       self()->setGcCardSize(mmf->j9gc_concurrent_getCardSize(vm));
       self()->setHeapBase(mmf->j9gc_concurrent_getHeapBase(vm));
       self()->setHeapTop(mmf->j9gc_concurrent_getHeapBase(vm) + mmf->j9gc_get_initial_heap_size(vm));
-#endif
-
       }
-
-   self()->setGcMode(wrtbarMode);
+#endif
 
    uintptr_t value;
 
@@ -1131,16 +1114,6 @@ J9::Options::fePreProcess(void * base)
 
    value = mmf->j9gc_modron_getConfigurationValueForKey(vm, j9gc_modron_configuration_heapAddressToCardAddressShift, &value) ? value : 0;
    self()->setHeapAddressToCardAddressShift(value);
-
-#if 0
-// DMDM: MOVED TO ObjectModel
-   uintptr_t result = mmf->j9gc_modron_getConfigurationValueForKey(vm, j9gc_modron_configuration_discontiguousArraylets, &value);
-   if (result == 0)
-      self()->setUsesDiscontiguousArraylets(false);
-   else
-      self()->setUsesDiscontiguousArraylets((value == 1) ? true : false);
-#endif
-
 
    // Pull the constant heap parameters from a VMThread (it doesn't matter which one).
    //
@@ -1800,7 +1773,7 @@ J9::Options::fePreProcess(void * base)
    TR_Processor proc = TR_J9VMBase::getPPCProcessorType();
    preferTLHPrefetch = proc >= TR_PPCp6 && proc <= TR_PPCp7;
 #elif defined(TR_HOST_S390)
-   preferTLHPrefetch = TR::Compiler->target.cpu.getS390SupportsZ10();
+   preferTLHPrefetch = TR::Compiler->target.cpu.getSupportsArch(TR::CPU::z10);
 #else /* TR_HOST_X86 */
    preferTLHPrefetch = true;
    // Disable TM on x86 because we cannot tell whether a Haswell chip supports TM or not, plus it's killing the performace on dayTrader3
@@ -1880,21 +1853,19 @@ J9::Options::fePreProcess(void * base)
       self()->setOption(TR_InlineVeryLargeCompiledMethods);
       }
 
-   // Disable HPR support in preparation for it's removal. After nearly a decade of struggles we are ready to give up
-   // on this feature due to being unable to mould it into a state where it provides general benefit. See issue #4609
-   // for a detailed justification and disucssion on this topic.
-   // 
-   // In preparation for codebase-wide deprecation of this feature, which has founds it's way into many locations, we
-   // first disable the support here such that the mere act of cleanup does not introduce unwanted problems.
-   self()->setOption(TR_DisableHighWordRA);
-   self()->setOption(TR_DisableHPRSpill);
-   self()->setOption(TR_DisableHPRUpgrade);
+   static bool enableZ15 = feGetEnv("TR_EnableZ15") != NULL;
+
+   if (!enableZ15)
+      {
+      // Disable zNext support until it has been gone through several rounds of functional stress testing
+      self()->setOption(TR_DisableZ15);
+      }
 #endif
 
    // On big machines we can afford to spend more time compiling
    // (but not on zOS where customers care about CPU or on Xquickstart
    // which should be skimpy on compilation resources).
-   // TR_SuspendEarly is set on zOS becuse test results indicate that
+   // TR_SuspendEarly is set on zOS because test results indicate that
    // it does not benefit much by spending more time compiling.
 #if !defined(J9ZOS390)
    if (!self()->isQuickstartDetected())
@@ -2322,7 +2293,7 @@ bool J9::Options::feLatePostProcess(void * base, TR::OptionSet * optionSet)
       self()->setOption(TR_DisableNextGenHCR);
       }
 
-#if !defined(TR_HOST_X86)
+#if !defined(TR_HOST_X86) && !defined(TR_HOST_S390)
    //The bit is set when -XX:+JITInlineWatches is specified
    if (J9_ARE_ANY_BITS_SET(javaVM->extendedRuntimeFlags, J9_EXTENDED_RUNTIME_JIT_INLINE_WATCHES))
       TR_ASSERT_FATAL(false, "this platform doesn't support JIT inline field watch");

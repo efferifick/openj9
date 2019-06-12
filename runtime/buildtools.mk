@@ -53,7 +53,7 @@ else
 endif
 
 ifneq (,$(CCACHE))
-  # Open jdk makefiles add a  bunch of environemnt variables to the ccache command
+  # Open jdk makefiles add a  bunch of environment variables to the ccache command
   # cmake will not parse this properly, so we wrap the whole thing in the env command
   # We also need to add semicolons between arguments or else cmake will treat the whole
   # thing as one long command name
@@ -178,7 +178,6 @@ OMRGLUE_INCLUDES = \
   ../gc_structs \
   ../gc_stats \
   ../gc_modron_standard \
-  ../gc_staccato \
   ../gc_realtime \
   ../gc_trace \
   ../gc_vlhgc
@@ -189,7 +188,12 @@ ifeq (true,$(OPENJ9_ENABLE_CMAKE))
 configure : constantpool nls
 	mkdir -p build && cd build && $(CMAKE) -C ../cmake/caches/$(SPEC).cmake  $(CMAKE_ARGS) $(EXTRA_CMAKE_ARGS) ..
 else
-configure : uma
+.PHONY : j9includegen
+
+j9includegen : uma
+	$(MAKE) -C include j9include_generate
+
+configure : j9includegen
 	$(MAKE) -C omr -f run_configure.mk 'SPEC=$(SPEC)' 'OMRGLUE=$(OMRGLUE)' 'CONFIG_INCL_DIR=$(CONFIG_INCL_DIR)' 'OMRGLUE_INCLUDES=$(OMRGLUE_INCLUDES)' 'EXTRA_CONFIGURE_ARGS=$(EXTRA_CONFIGURE_ARGS)'
 endif
 

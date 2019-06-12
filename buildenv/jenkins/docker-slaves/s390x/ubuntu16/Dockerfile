@@ -22,7 +22,7 @@
 # First copy your public ssh key into a file named authorized_keys next to the Dockerfile
 # Then include a known_hosts file next to the Dockerfile, with github as a saved host
 # This can be done with "ssh-keyscan github.com >> path_to_dockerfile/known_hosts"
-# Make sure you are in the directory contianing the Dockerfile, authorized_keys file, and known_hosts file
+# Make sure you are in the directory containing the Dockerfile, authorized_keys file, and known_hosts file
 # Then run:
 #   docker build -t openj9 -f Dockerfile .
 #   docker run -it openj9
@@ -44,7 +44,6 @@ RUN apt-get update \
     autoconf \
     build-essential \
     ca-certificates \
-    cmake \
     cpio \
     curl \
     libexpat1-dev `# This is being used for the xml parser` \
@@ -103,6 +102,17 @@ RUN ln -s /usr/lib/s390x-linux-gnu /usr/lib64 \
 RUN echo "/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf \
   && ldconfig
 
+# Install cmake version 3.11.4
+RUN cd /tmp \
+  && wget https://cmake.org/files/v3.11/cmake-3.11.4.tar.gz \
+  && tar xzf cmake-3.11.4.tar.gz \
+  && rm cmake-3.11.4.tar.gz \
+  && cd /tmp/cmake-3.11.4 \
+  && ./configure \
+  && make \
+  && make install
+
+
 # Add user home/USER and copy authorized_keys and known_hosts
 RUN useradd -ms /bin/bash ${USER} \
   && mkdir /home/${USER}/.ssh/
@@ -138,6 +148,16 @@ RUN mkdir -p /usr/lib/jvm/adoptojdk-java-11 \
   && mv $(ls | grep -i jdk-11) bootjdk11 \
   && mv bootjdk11/* /usr/lib/jvm/adoptojdk-java-11 \
   && rm -rf bootjdk11
+
+# Download and install boot JDK from AdoptOpenJDK for java 13 and higher
+RUN mkdir -p /usr/lib/jvm/adoptojdk-java-12 \
+  && cd /usr/lib/jvm/adoptojdk-java-12 \
+  && wget -O bootjdk12.tar.gz "https://api.adoptopenjdk.net/v2/binary/releases/openjdk12?openjdk_impl=openj9&os=linux&arch=s390x&release=latest&type=jdk" \
+  && tar -xzf bootjdk12.tar.gz \
+  && rm -f bootjdk12.tar.gz \
+  && mv $(ls | grep -i jdk-12) bootjdk12 \
+  && mv bootjdk12/* /usr/lib/jvm/adoptojdk-java-12 \
+  && rm -rf bootjdk12
 
 # Set up sshd config
 RUN mkdir /var/run/sshd \

@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 ###
-### Basic housekeeeping stuff
+### Basic housekeeping stuff
 ### IE things which need to be set up before including J9vmPlatform
 ###
 
@@ -34,8 +34,6 @@ project(j9vm VERSION ${J9VM_VERSION} LANGUAGES CXX C)
 set(J9VM_OMR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/omr" CACHE PATH "Path to the OMR directory")
 set(CMAKE_MODULE_PATH "${j9vm_SOURCE_DIR}/cmake/modules" "${J9VM_OMR_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 
-enable_language(ASM)
-
 ###
 ### End basic housekeeping
 ###
@@ -43,12 +41,23 @@ enable_language(ASM)
 # Get platform specific configuration stuff
 include(cmake/platform.cmake)
 
+# If we are building on windows, we want ASM_MASM not ASM
+if(OMR_OS_WINDOWS)
+	enable_language(ASM_MASM)
+else()
+	enable_language(ASM)
+endif()
+
 # Pull in definitions for omr_add_hookgen and omr_add_tracegen
 # these will be in omr/cmake/modules
 include(OmrHookgen)
-set(OMR_TRACE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+if(J9VM_IS_NON_STAGING)
+	set(OMR_TRACE_ROOT "${CMAKE_CURRENT_BINARY_DIR}")
+else()
+	set(OMR_TRACE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 include(OmrTracegen)
-
+include(OmrDDRSupport)
 include(cmake/build_tags.cmake)
 include(cmake/compiler_config.cmake)
 include(cmake/J9vmGenAsm.cmake)
@@ -58,7 +67,7 @@ include(cmake/J9vmGenAsm.cmake)
 ### all configuration that does not need to proceed J9vmPlatform
 ###
 
-# Build everything with -fPIC (or equivilent).
+# Build everything with -fPIC (or equivalent).
 # We do this to ensure that our static libraries get built with -fPIC
 # (cmake automatically builds shared libraries with -fPIC)
 # TODO this has the side effect that we also build executables with -fPIE which we dont want.
@@ -79,8 +88,20 @@ set(OMR_INSTALL_BIN_DIR "${j9vm_SOURCE_DIR}" CACHE PATH "")
 set(OMR_INSTALL_LIB_DIR "${j9vm_SOURCE_DIR}" CACHE PATH "")
 set(OMR_INSTALL_ARCHIVE_DIR "${j9vm_SOURCE_DIR}/lib" CACHE PATH "")
 
+# if this is a non-staging build, we want to put binaries in current source dir
+if(J9VM_IS_NON_STAGING)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+	# we also want to set the RPATH properly
+	set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
+
 # Generic configuration for omr
 include(cmake/omr_config.cmake)
+
+if(OPENJ9_BUILD)
+	add_definitions(-DOPENJ9_BUILD)
+endif()
 
 #clean up the variables we used
 set(versionStr)
@@ -106,7 +127,7 @@ omr_add_hookgen(INPUT oti/zipCachePool.hdf)
 omr_add_hookgen(INPUT gc_include/j9mm.hdf)
 
 # Wrap up the hookgen'd files in a named target
-# This is to work arround the fact that CMake does not do proper dependency tracking
+# This is to work around the fact that CMake does not do proper dependency tracking
 # for generated files across different directories
 add_custom_target(j9vm_hookgen
 	DEPENDS
@@ -117,11 +138,12 @@ add_custom_target(j9vm_hookgen
 )
 
 # Generate NLS headers
-if(J9VM_GEN_NLS)
+if(J9VM_IS_NON_STAGING)
 	add_custom_command(
 		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/java.properties"
 		DEPENDS j9nls
 		COMMAND "${Java_JAVA_EXECUTABLE}" -cp "$<TARGET_PROPERTY:j9nls,JAR_FILE>" com.ibm.oti.NLSTool.J9NLS -source "${CMAKE_CURRENT_SOURCE_DIR}"
+		VERBATIM
 	)
 	add_custom_target(j9vm_nlsgen
 		DEPENDS
@@ -132,17 +154,41 @@ else()
 	add_custom_target(j9vm_nlsgen)
 endif()
 
-# Note we do this here rather than in the redirector directory to work arround
+# Generate jvmti header
+if(J9VM_IS_NON_STAGING)
+	set(J9VM_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+	file(MAKE_DIRECTORY "${J9VM_INCLUDE_DIR}")
+else()
+	set(J9VM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()
+add_custom_command(OUTPUT "${J9VM_INCLUDE_DIR}/jvmti.h"
+	DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/jvmti.h.m4"
+	COMMAND m4 -D "JAVA_SPEC_VERSION=${JAVA_SPEC_VERSION}" "${CMAKE_CURRENT_SOURCE_DIR}/include/jvmti.h.m4" > "jvmti.h"
+	VERBATIM
+	WORKING_DIRECTORY "${J9VM_INCLUDE_DIR}"
+)
+
+#Generate jni header
+add_custom_command(OUTPUT "${J9VM_INCLUDE_DIR}/jni.h" 
+	DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/jni.h.m4"
+   	COMMAND m4 -D "JAVA_SPEC_VERSION=${JAVA_SPEC_VERSION}" "${CMAKE_CURRENT_SOURCE_DIR}/include/jni.h.m4" > "jni.h"
+	VERBATIM
+	WORKING_DIRECTORY "${J9VM_INCLUDE_DIR}"
+)
+
+# Note we do this here rather than in the redirector directory to work around
 # issues in cmake. If we did it there each target which consumed generated.c has
 # its own rule to create it. Which causes a race condition when building in parallel
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/redirector/generated.c"
 	DEPENDS oti/helpers.m4 redirector/generated.c.m4
 	COMMAND m4 -I "${CMAKE_CURRENT_SOURCE_DIR}/oti" -I "${CMAKE_CURRENT_SOURCE_DIR}/redirector" "${CMAKE_CURRENT_SOURCE_DIR}/redirector/generated.c.m4" > generated.c
+	VERBATIM
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/redirector"
 )
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/j9vm/generated.h"
 	DEPENDS oti/helpers.m4 redirector/forwarders.m4 j9vm/generated.h.m4
 	COMMAND m4 -I "${CMAKE_CURRENT_SOURCE_DIR}/oti" -I "${CMAKE_CURRENT_SOURCE_DIR}/redirector" "${CMAKE_CURRENT_SOURCE_DIR}/j9vm/generated.h.m4" > generated.h
+	VERBATIM
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/j9vm"
 )
 
@@ -150,7 +196,15 @@ add_custom_target(j9vm_m4gen
 	DEPENDS
 		"${CMAKE_CURRENT_BINARY_DIR}/redirector/generated.c"
 		"${CMAKE_CURRENT_BINARY_DIR}/j9vm/generated.h"
+		"${J9VM_INCLUDE_DIR}/jni.h"
+		"${J9VM_INCLUDE_DIR}/jvmti.h"
 )
+
+if(J9VM_IS_NON_STAGING)
+	add_custom_target(copy_default_options ALL
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/options.default" "${CMAKE_CURRENT_BINARY_DIR}/options.default"
+	)
+endif()
 
 ###
 ### Helper interface libraries
@@ -164,11 +218,13 @@ target_include_directories(j9vm_interface
 		${CMAKE_CURRENT_SOURCE_DIR}/oti
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${J9VM_OMR_DIR}/include_core
+		${CMAKE_CURRENT_BINARY_DIR}/include
 		${CMAKE_CURRENT_BINARY_DIR}/omr
 		${CMAKE_CURRENT_BINARY_DIR}
+		${CMAKE_BINARY_DIR}
 )
 
-if(J9VM_GEN_NLS)
+if(J9VM_IS_NON_STAGING)
 	target_include_directories(j9vm_interface INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/nls)
 else()
 	target_include_directories(j9vm_interface INTERFACE nls)
@@ -207,6 +263,8 @@ target_link_libraries(j9vm_main_wrapper
 ### OMR configuration stuff
 ###
 
+make_ddr_set(j9ddr)
+
 # set up glue library target names
 # See https://github.com/eclipse/omr/blob/master/doc/BuildingWithCMake.md
 set(OMR_GC_GLUE_TARGET "j9vm_gc_glue" CACHE INTERNAL "")
@@ -221,11 +279,17 @@ set(OMR_PORT_LIB "j9prt" CACHE INTERNAL "")
 set(OMR_THREAD_LIB "j9thr" CACHE INTERNAL "")
 set(OMR_TRACE_LIB "j9trc" CACHE INTERNAL "")
 
+set(OMR_DDR_SET "j9ddr" CACHE INTERNAL "")
+
 add_subdirectory(gc_glue_java)
 # hack to add our binary dir to omr include path
 # needed to grab the headers created by trace/hookgen
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory("${J9VM_OMR_DIR}" omr)
+
+# Due to CMake technical limitations we can't properly propagate dependencies
+# to omrutil via the glue.
+add_dependencies(omrutil_obj j9vm_nlsgen run_cptool)
 
 ###
 ### Share library version suffixing
@@ -245,8 +309,8 @@ set(CMAKE_SHARED_LIBRARY_SUFFIX "${J9VM_SHARED_LIBRARY_SUFFIX}")
 ###
 ### Begin the definitions of our modules
 ###
-# TODO: a few subdirectories still neeed to be implemented (currently commented out)
-# TODO: most libriaries still need to be gated with if() statements
+# TODO: a few subdirectories still need to be implemented (currently commented out)
+# TODO: most libraries still need to be gated with if() statements
 
 if(J9VM_MODULE_BCUTIL)
 	add_subdirectory(bcutil)
@@ -306,9 +370,6 @@ if(J9VM_MODULE_GC_MODRON_STARTUP)
 endif()
 if(J9VM_MODULE_GC_REALTIME)
 	add_subdirectory(gc_realtime)
-endif()
-if(J9VM_MODULE_GC_STACCATO)
-	add_subdirectory(gc_staccato)
 endif()
 if(J9VM_MODULE_GC_STATS)
 	add_subdirectory(gc_stats)

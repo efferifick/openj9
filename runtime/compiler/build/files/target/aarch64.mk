@@ -21,6 +21,7 @@
 JIT_PRODUCT_BACKEND_SOURCES+= \
     omr/compiler/aarch64/codegen/ARM64BinaryEncoding.cpp \
     omr/compiler/aarch64/codegen/ARM64Debug.cpp \
+    omr/compiler/aarch64/codegen/ARM64HelperCallSnippet.cpp \
     omr/compiler/aarch64/codegen/ARM64Instruction.cpp \
     omr/compiler/aarch64/codegen/ARM64OutOfLineCodeSection.cpp \
     omr/compiler/aarch64/codegen/ARM64SystemLinkage.cpp \
@@ -42,4 +43,15 @@ JIT_PRODUCT_BACKEND_SOURCES+= \
     omr/compiler/aarch64/env/OMRCPU.cpp \
     omr/compiler/aarch64/env/OMRDebugEnv.cpp
 
-JIT_PRODUCT_SOURCE_FILES+=
+JIT_PRODUCT_SOURCE_FILES+= \
+    compiler/aarch64/codegen/ARM64JNILinkage.cpp \
+    compiler/aarch64/codegen/ARM64PrivateLinkage.cpp \
+    compiler/aarch64/codegen/ARM64Recompilation.cpp \
+    compiler/aarch64/codegen/CallSnippet.cpp \
+    compiler/aarch64/codegen/J9ARM64Snippet.cpp \
+    compiler/aarch64/codegen/J9AheadOfTimeCompile.cpp \
+    compiler/aarch64/codegen/J9CodeGenerator.cpp \
+    compiler/aarch64/codegen/J9TreeEvaluator.cpp \
+    compiler/aarch64/codegen/J9UnresolvedDataSnippet.cpp \
+    compiler/aarch64/codegen/StackCheckFailureSnippet.cpp \
+    compiler/aarch64/env/J9CPU.cpp

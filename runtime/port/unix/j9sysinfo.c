@@ -165,7 +165,7 @@ typedef struct lpar_info_format2_t {
 
         ushort   group_id;              /* ID of a LPAR group/aggregation    */
         ushort   pool_id;               /* ID of a shared pool */
-        char     pad1[36];              /* reserved for furture */
+        char     pad1[36];              /* reserved for future */
 
 } lpar_info_format2_t;
 
@@ -1142,6 +1142,40 @@ getS390Description(struct J9PortLibrary *portLibrary, J9ProcessorDesc *desc)
 		setFeature(desc, J9PORT_S390_FEATURE_MSA_EXTENSION_8);
 
 		desc->processor = PROCESSOR_S390_GP12;
+	}
+	
+    /* z15 facility and processor detection */
+
+	if (testSTFLE(portLibrary, J9PORT_S390_FEATURE_MISCELLANEOUS_INSTRUCTION_EXTENSION_3)) {
+		setFeature(desc, J9PORT_S390_FEATURE_MISCELLANEOUS_INSTRUCTION_EXTENSION_3);
+
+		desc->processor = PROCESSOR_S390_GP13;
+	}
+
+	if (testSTFLE(portLibrary, J9PORT_S390_FEATURE_VECTOR_FACILITY_ENHANCEMENT_2)) {
+#if defined(J9ZOS390)
+		if (getS390zOS_supportsVectorExtensionFacility())
+#elif defined(LINUX) && !defined(J9ZTPF) /* defined(J9ZOS390) */
+		if (J9_ARE_ALL_BITS_SET(auxvFeatures, J9PORT_HWCAP_S390_VXRS))
+#endif /* defined(LINUX) && !defined(J9ZTPF) */
+		{
+			setFeature(desc, J9PORT_S390_FEATURE_VECTOR_FACILITY_ENHANCEMENT_2);
+
+			desc->processor = PROCESSOR_S390_GP13;
+		}
+	}
+
+	if (testSTFLE(portLibrary, J9PORT_S390_FEATURE_VECTOR_PACKED_DECIMAL_ENHANCEMENT_FACILITY)) {
+#if defined(J9ZOS390)
+		if (getS390zOS_supportsVectorExtensionFacility())
+#elif defined(LINUX) && !defined(J9ZTPF) /* defined(J9ZOS390) */
+		if (J9_ARE_ALL_BITS_SET(auxvFeatures, J9PORT_HWCAP_S390_VXRS))
+#endif /* defined(LINUX) && !defined(J9ZTPF) */
+		{
+			setFeature(desc, J9PORT_S390_FEATURE_VECTOR_PACKED_DECIMAL_ENHANCEMENT_FACILITY);
+
+			desc->processor = PROCESSOR_S390_GP13;
+		}
 	}
 
 	/* Set Side Effect Facility without setting GP12. This is because

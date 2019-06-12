@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2018 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -160,7 +160,7 @@ processMethod(J9VMThread * currentThread, UDATA lookupOptions, J9Method * method
 
 	/* Check that the found method is visible from the sender */
 
-	if (J9_ARE_NO_BITS_SET(lookupOptions, J9_LOOK_NO_VISIBILITY_CHECK) && (NULL != senderClass) && (!J9ROMCLASS_IS_UNSAFE(senderClass->romClass))) {
+	if (J9_ARE_NO_BITS_SET(lookupOptions, J9_LOOK_NO_VISIBILITY_CHECK) && (NULL != senderClass) && !J9CLASS_IS_EXEMPT_FROM_VALIDATION(senderClass)) {
 		U_32 newModifiers = modifiers;
 		BOOLEAN doVisibilityCheck = TRUE;
 
@@ -191,10 +191,10 @@ processMethod(J9VMThread * currentThread, UDATA lookupOptions, J9Method * method
 						 */
 						doVisibilityCheck = FALSE;
 					} else {
-							*exception = J9VMCONSTANTPOOL_JAVALANGILLEGALACCESSERROR;
-							*exceptionClass = methodClass;
-							*errorType = J9_VISIBILITY_NON_MODULE_ACCESS_ERROR;
-							return NULL;
+						*exception = J9VMCONSTANTPOOL_JAVALANGILLEGALACCESSERROR;
+						*exceptionClass = methodClass;
+						*errorType = J9_VISIBILITY_NON_MODULE_ACCESS_ERROR;
+						return NULL;
 					}
 				}
 			}
@@ -213,9 +213,9 @@ processMethod(J9VMThread * currentThread, UDATA lookupOptions, J9Method * method
 
 	/* Check that we find the right kind of method (static / virtual / interface) */
 
-	if (((lookupOptions & J9_LOOK_STATIC) && ((modifiers & J9AccStatic) == 0)) ||
-		((lookupOptions & J9_LOOK_VIRTUAL) && (modifiers & J9AccStatic)))
-	{
+	if (((lookupOptions & J9_LOOK_STATIC) && ((modifiers & J9AccStatic) == 0))
+	|| ((lookupOptions & J9_LOOK_VIRTUAL) && (modifiers & J9AccStatic))
+	) {
 		*exception = J9VMCONSTANTPOOL_JAVALANGINCOMPATIBLECLASSCHANGEERROR;
 		*exceptionClass = methodClass;
 		*errorType = J9_VISIBILITY_NON_MODULE_ACCESS_ERROR;
@@ -1071,8 +1071,8 @@ illegalAccessMessage(J9VMThread *currentThread, IDATA badMemberModifier, J9Class
 	 * 		J9_VISIBILITY_MODULE_PACKAGE_EXPORT_ERROR
 	 */
 	if ((J9_VISIBILITY_NEST_HOST_LOADING_FAILURE_ERROR == errorType)
-			|| (J9_VISIBILITY_NEST_HOST_DIFFERENT_PACKAGE_ERROR == errorType)
-			|| (J9_VISIBILITY_NEST_MEMBER_NOT_CLAIMED_ERROR == errorType)
+	|| (J9_VISIBILITY_NEST_HOST_DIFFERENT_PACKAGE_ERROR == errorType)
+	|| (J9_VISIBILITY_NEST_MEMBER_NOT_CLAIMED_ERROR == errorType)
 	) {
 		J9Class *unverifiedNestMemberClass = NULL;
 		J9ROMClass *romClass = NULL;

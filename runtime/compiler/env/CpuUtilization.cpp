@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2018 IBM Corp. and others
+ * Copyright (c) 2000, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -202,7 +202,7 @@ CpuUtilization::CpuUtilization(J9JITConfig *jitConfig):
       return;
       }
    
-   // Initialize the buffer; no need to intialize the _sampleSystemCpu and _sampleJvmCpu
+   // Initialize the buffer; no need to initialize the _sampleSystemCpu and _sampleJvmCpu
    // fields since we can just check if _timeStamp equals 0
    for (int32_t i = 0; i < _cpuUsageCircularBufferSize; i++)
       {
@@ -321,7 +321,7 @@ int32_t CpuSelfThreadUtilization::computeThreadCpuUtilOverLastNns(int64_t validI
      
       // The interval between crtTimeNs and lastIntervalEndNs is not accounted for; if this interval
       // is larger than the measurement period the thread might have gone to sleep and not
-      // had a chance to update its CPU utilization. Blindely assume a 0% duty cycle
+      // had a chance to update its CPU utilization. Blindly assume a 0% duty cycle
       if (crtTimeNs - lastIntervalEndNs > _minMeasurementIntervalLength)
          {
          totalTime += crtTimeNs - lastIntervalEndNs;

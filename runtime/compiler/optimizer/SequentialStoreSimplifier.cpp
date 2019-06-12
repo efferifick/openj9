@@ -29,7 +29,6 @@
 #include <string.h>
 #include "codegen/CodeGenerator.hpp"
 #include "codegen/FrontEnd.hpp"
-#include "codegen/Linkage.hpp"
 #include "codegen/StorageInfo.hpp"
 #include "compile/Compilation.hpp"
 #include "compile/SymbolReferenceTable.hpp"
@@ -1842,7 +1841,6 @@ static TR::TreeTop* generateArraysetFromSequentialStores(TR::Compilation* comp, 
          static char *disableHoist = feGetEnv("TR_disableHoist");
          if (!disableHoist &&
              comp->getJittedMethodSymbol() && // avoid NULL pointer on non-Wcode builds
-             !comp->getJittedMethodSymbol()->isNoTemps() &&
              comp->cg()->isMaterialized(constValueNode))
             {
             TR::Block *block = prevTreeTop->getEnclosingBlock();

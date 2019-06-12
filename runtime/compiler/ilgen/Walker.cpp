@@ -2459,12 +2459,12 @@ TR_J9ByteCodeIlGenerator::saveStack(int32_t targetIndex, bool anchorLoads)
 // Meanwhile, TR IL is being generated that refers to Nodes popped off
 // the stack. The assumption here is that the order of operations is
 // unconstrained other than by the data flow implied by the trees of
-// references to nodes and by the control dependancies imposed by the
+// references to nodes and by the control dependencies imposed by the
 // order of treetops. The latter are implied by the semantics of each
 // bytecode.
 //
 // The job of handlePendingPushSaveSideEffects is to add additional
-// implicit control dependancies to the TR IL caused by the
+// implicit control dependencies to the TR IL caused by the
 // decompilation points.  All loads of the PPS save region must occur
 // before decompilation points except in the specfic case when the load
 // would redundantly reload a value already in the PPS.
@@ -3146,7 +3146,7 @@ TR_J9ByteCodeIlGenerator::calculateArrayElementAddress(TR::DataType dataType, bo
    // since each element of an reference array is a compressed pointer,
    // modify the width accordingly, so the stride is 4bytes instead of 8
    //
-   // J9VM_GC_COMPRESSED_POINTERS
+   // OMR_GC_COMPRESSED_POINTERS
    //
    if (comp()->useCompressedPointers() && dataType == TR::Address)
       {
@@ -3967,6 +3967,7 @@ TR_J9ByteCodeIlGenerator::genInvokeInterface(int32_t cpIndex)
       _methodSymbol->setMayHaveInlineableCall(true);
       TR::TreeTop *prevLastTree = _block->getExit()->getPrevTreeTop();
       TR::Node *callNode = NULL;
+      TR::Node *receiver = topn(improperMethod->numberOfExplicitParameters());
       if (improperMethod->isPrivate() || improperMethod->convertToMethod()->isFinalInObject())
          {
          TR::SymbolReference *symRef = symRefTab()->findOrCreateMethodSymbol(
@@ -4008,7 +4009,7 @@ TR_J9ByteCodeIlGenerator::genInvokeInterface(int32_t cpIndex)
       TR::TransformUtil::separateNullCheck(comp(), callTree, comp()->getOption(TR_TraceILGen));
 
       uint32_t interfaceCPIndex = owningMethod->classCPIndexOfMethod(cpIndex);
-      push(callNode->getArgument(0));
+      push(receiver);
       genInstanceof(interfaceCPIndex);
       TR::Node *instanceof = pop();
 
@@ -4776,7 +4777,7 @@ break
       bool isPOWERDFP = TR::Compiler->target.cpu.isPower() && TR::Compiler->target.cpu.supportsDecimalFloatingPoint();
       bool is390DFP =
 #ifdef TR_TARGET_S390
-         TR::Compiler->target.cpu.isZ() && TR::Compiler->target.cpu.getS390SupportsDFP();
+         TR::Compiler->target.cpu.isZ() && TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility();
 #else
          false;
 #endif
@@ -4959,7 +4960,7 @@ break
 #endif
        }
 
-    if (comp()->cg()->getSupportsInlineConcurrentLinkedQueue() && (comp()->getOptions()->getGcMode() != TR_WrtbarRealTime) &&
+    if (comp()->cg()->getSupportsInlineConcurrentLinkedQueue() && (TR::Compiler->om.writeBarrierType() != gc_modron_wrtbar_satb) &&
          (symbol->getRecognizedMethod() == TR::java_util_concurrent_ConcurrentLinkedQueue_tmEnabled))
        {
        loadConstant(TR::iconst, 1);
@@ -5056,7 +5057,7 @@ break
       TR::ILOpCodes callOpCode = calledMethod->indirectCallOpCode();
       if (invokedynamicReceiver)
          {
-         // invokedyanmic is an oddball.  It's the only way to invoke a method
+         // invokedynamic is an oddball.  It's the only way to invoke a method
          // such that the receiver is NOT on the operand stack, yet it IS
          // included in the numArgs calculation.  That's why we pass
          // numChildren as numArgs+1 below.
@@ -5872,7 +5873,7 @@ TR_J9ByteCodeIlGenerator::loadInstance(int32_t cpIndex)
    if (!comp()->compileRelocatableCode() && !comp()->getOption(TR_DisableDFP) &&
        ((TR::Compiler->target.cpu.isPower() && TR::Compiler->target.cpu.supportsDecimalFloatingPoint())
 #ifdef TR_TARGET_S390
-         || (TR::Compiler->target.cpu.isZ() && TR::Compiler->target.cpu.getS390SupportsDFP())
+         || (TR::Compiler->target.cpu.isZ() && TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility())
 #endif
          ))
       {
@@ -6514,7 +6515,7 @@ TR_J9ByteCodeIlGenerator::loadFromCP(TR::DataType type, int32_t cpIndex)
                      return;
                      }
                   }
-               // If the primitive condy is unresolved, OR resolved but we fail to accquire VM access,
+               // If the primitive condy is unresolved, OR resolved but we fail to acquire VM access,
                // proceed to generate the loads. Store the type signature info in the symbol so it may be
                // retrieved by optimizer later.
                symbolTypeSig = (char*)comp()->trMemory()->allocateMemory(autoboxClassSigLength, heapAlloc);

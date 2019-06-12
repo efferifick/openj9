@@ -1866,7 +1866,7 @@ uint32_t TR::getCCPreLoadedCodeSize()
    //TR_writeBarrier/TR_writeBarrierAndCardMark/TR_cardMark
    size += 12;
    if (TR::Options::getCmdLineOptions()->getGcCardSize() > 0)
-      size += 19 + (TR::Options::getCmdLineOptions()->getGcMode() != TR_WrtbarCardMarkIncremental ? 13 : 10);
+      size += 19 + (TR::Compiler->om.writeBarrierType() != gc_modron_wrtbar_cardmark_incremental ? 13 : 10);
 
 #if defined(TR_TARGET_32BIT)
    // If heap base and/or size is constant we can materialize them with 1 or 2 instructions
@@ -2258,7 +2258,7 @@ static uint8_t* initializeCCPreLoadedObjectAlloc(uint8_t *buffer, void **CCPreLo
 
    TR::Instruction *entry = generateLabelInstruction(cg, TR::InstOpCode::label, n, entryLabel);
    TR::Instruction *cursor = entry;
-#if defined(J9VM_INTERP_COMPRESSED_OBJECT_HEADER)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    const TR::InstOpCode::Mnemonic Op_stclass = TR::InstOpCode::stw;
 #else
    const TR::InstOpCode::Mnemonic Op_stclass =TR::InstOpCode::Op_st;
@@ -2475,7 +2475,7 @@ static uint8_t* initializeCCPreLoadedArrayAlloc(uint8_t *buffer, void **CCPreLoa
 
    TR::Instruction *entry = generateLabelInstruction(cg, TR::InstOpCode::label, n, entryLabel);
    TR::Instruction *cursor = entry;
-#if defined(J9VM_INTERP_COMPRESSED_OBJECT_HEADER)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    const TR::InstOpCode::Mnemonic Op_stclass = TR::InstOpCode::stw;
 #else
    const TR::InstOpCode::Mnemonic Op_stclass =TR::InstOpCode::Op_st;
@@ -2749,7 +2749,7 @@ static uint8_t* initializeCCPreLoadedWriteBarrier(uint8_t *buffer, void **CCPreL
    helperTrampolineLabel->setCodeLocation((uint8_t *)TR::CodeCacheManager::instance()->findHelperTrampoline(TR_writeBarrierStoreGenerational, buffer));
    TR::Instruction *entry = generateLabelInstruction(cg, TR::InstOpCode::label, n, entryLabel);
    TR::Instruction *cursor = entry;
-#if defined(J9VM_INTERP_COMPRESSED_OBJECT_HEADER)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    const TR::InstOpCode::Mnemonic Op_lclass = TR::InstOpCode::lwz;
 #else
    const TR::InstOpCode::Mnemonic Op_lclass =TR::InstOpCode::Op_load;
@@ -2851,7 +2851,7 @@ static uint8_t* initializeCCPreLoadedWriteBarrierAndCardMark(uint8_t *buffer, vo
    helperTrampolineLabel->setCodeLocation((uint8_t *)TR::CodeCacheManager::instance()->findHelperTrampoline(TR_writeBarrierStoreGenerationalAndConcurrentMark, buffer));
    TR::Instruction *entry = generateLabelInstruction(cg, TR::InstOpCode::label, n, entryLabel);
    TR::Instruction *cursor = entry;
-#if defined(J9VM_INTERP_COMPRESSED_OBJECT_HEADER)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    const TR::InstOpCode::Mnemonic Op_lclass = TR::InstOpCode::lwz;
 #else
    const TR::InstOpCode::Mnemonic Op_lclass =TR::InstOpCode::Op_load;
@@ -3002,7 +3002,7 @@ static uint8_t* initializeCCPreLoadedCardMark(uint8_t *buffer, void **CCPreLoade
    cursor = generateTrg1Src2Instruction(cg,TR::InstOpCode::Op_cmpl, n, cr0, r5, r4, cursor);
    cursor = generateConditionalBranchInstruction(cg, TR::InstOpCode::bgelr, n, NULL, cr0, cursor);
    // Incremental (i.e. balanced) always dirties the card
-   if (comp->getOptions()->getGcMode() != TR_WrtbarCardMarkIncremental)
+   if (TR::Compiler->om.writeBarrierType() != gc_modron_wrtbar_cardmark_incremental)
       {
       cursor = generateTrg1MemInstruction(cg, TR::InstOpCode::lwz, n, r4,
                                           new (cg->trHeapMemory()) TR::MemoryReference(metaReg,  offsetof(struct J9VMThread, privateFlags), 4, cg),
@@ -3029,7 +3029,7 @@ static uint8_t* initializeCCPreLoadedCardMark(uint8_t *buffer, void **CCPreLoade
    for (TR::Instruction *i = eyecatcher; i != NULL; i = i->getNext())
       cg->setBinaryBufferCursor(i->generateBinaryEncoding());
 
-   const uint32_t helperSize = comp->getOptions()->getGcMode() != TR_WrtbarCardMarkIncremental ? 13 : 10;
+   const uint32_t helperSize = TR::Compiler->om.writeBarrierType() != gc_modron_wrtbar_cardmark_incremental ? 13 : 10;
    TR_ASSERT(cg->getBinaryBufferCursor() - entryLabel->getCodeLocation() == helperSize * PPC_INSTRUCTION_LENGTH,
            "Per-codecache card mark, unexpected size");
 
@@ -3066,7 +3066,7 @@ static uint8_t* initializeCCPreLoadedArrayStoreCHK(uint8_t *buffer, void **CCPre
    helperTrampolineLabel->setCodeLocation((uint8_t *)TR::CodeCacheManager::instance()->findHelperTrampoline(TR_typeCheckArrayStore, buffer));
    TR::Instruction *entry = generateLabelInstruction(cg, TR::InstOpCode::label, n, entryLabel);
    TR::Instruction *cursor = entry;
-#if defined(J9VM_INTERP_COMPRESSED_OBJECT_HEADER)
+#if defined(OMR_GC_COMPRESSED_POINTERS)
    const TR::InstOpCode::Mnemonic Op_lclass = TR::InstOpCode::lwz;
 #else
    const TR::InstOpCode::Mnemonic Op_lclass =TR::InstOpCode::Op_load;

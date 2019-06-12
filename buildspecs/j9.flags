@@ -228,6 +228,10 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<preclude flag="env_sharedLibsUseGlobalTable"/>
 		</precludes>
 	</flag>
+	<flag id="env_crossbuild">
+		<description>Use toolchain for cross build.</description>
+		<ifRemoved>Build uses native build environment.</ifRemoved>
+	</flag>
 	<flag id="env_data64">
 		<description>Default register width is 64-bits.</description>
 		<ifRemoved>Default register width is 32-bits.</ifRemoved>
@@ -1094,13 +1098,6 @@ Only available on zOS</description>
 	<flag id="jit_gcOnResolveSupport">
 		<description>Controls if the JIT VM interface supports gcOnResolve.</description>
 		<ifRemoved>gcOnResolve has no effect, saving space</ifRemoved>
-		<requires>
-			<require flag="interp_nativeSupport"/>
-		</requires>
-	</flag>
-	<flag id="jit_highWordRegisters">
-		<description>Controls whether JIT supports two values in a single wide register.</description>
-		<ifRemoved>Each register can contain only a single value.</ifRemoved>
 		<requires>
 			<require flag="interp_nativeSupport"/>
 		</requires>

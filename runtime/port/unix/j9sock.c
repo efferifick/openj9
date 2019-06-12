@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2018 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -2131,7 +2131,7 @@ j9sock_ipmreq_init(struct J9PortLibrary *portLibrary, j9ipmreq_t handle, uint32_
  * @param[in] portLibrary The port library.
  * @param[out] handle A pointer to the j9ipv6_mreq_struct to populate.
  * @param[in] ipmcast_addr The ip mulitcast address.
- * @param[in] ipv6mr_interface The ip mulitcast inteface.
+ * @param[in] ipv6mr_interface The ip mulitcast interface.
  *
  * @return	0, if no errors occurred, otherwise the (negative) error code.
  *
@@ -2485,7 +2485,7 @@ j9sock_select(struct J9PortLibrary *portLibrary, int32_t nfds, j9fdset_t readfd,
 		 * In the case of poll fails with EINTR, continue trying to poll since EINTR happens randomly for no reason.
 		 */
 		do {
-			/* Make sure revents is initilized to 0 before poll call. revents might not be initilized to 0 if this is not the first try of calling poll */
+			/* Make sure revents is initialized to 0 before poll call. revents might not be initialized to 0 if this is not the first try of calling poll */
 			pfds[0].revents = 0;
 			pfds[1].revents = 0;
 			pollrc = poll(pfds, numEntriesInPfd, timeoutms);
@@ -2786,7 +2786,7 @@ j9sock_setopt_int(struct J9PortLibrary *portLibrary, j9socket_t socketP, int32_t
 	/* for LINUX in order to enable support sending the ipv6_flowinfo field we have to set the SEND_FLOWINFO option on the socket
 		In java one value is set that is used for both the traffic class in the flowinfo field and the IP_TOS option.  Therefore  if the caller is setting traffic class
 		then this indicates that we should also be setting the flowinfo field so we need to 
-		set this option.  Howerver it can only be set on IPv6 sockets */
+		set this option.  However it can only be set on IPv6 sockets */
 #if defined(IPv6_FUNCTION_SUPPORT)
 #if defined(LINUX) || defined(OSX)
 	if(( OS_IPPROTO_IP == platformLevel)&&(OS_IP_TOS==platformOption)&&(socketP->family == J9ADDR_FAMILY_AFINET6 )){

@@ -90,7 +90,7 @@ public :
 
 	/* Assignment operators... */
 
-	/* Assigment methods... */
+	/* Assignment methods... */
 
 	/* Append operators... */
 	/* Operator for appending another string */
@@ -255,7 +255,7 @@ protected :
 		/* Declared data */
 		LengthType iCapacity;
 		LengthType iLength;
-		DataType*  iDebugData;  /* Only required for debuging */
+		DataType*  iDebugData;  /* Only required for debugging */
 
 		/* Internal method for accessing the data associated with a header */
 		inline DataType* data(void)
@@ -2174,7 +2174,7 @@ BinaryHeapDumpWriter::writeClassRecord(J9Class *currentClass)
 		return;
 	}
 
-	/* Write the comibined number of references */
+	/* Write the combined number of references */
 	writeNumber(instanceActiveReferenceCount + staticActiveReferenceCount, 4);
 	if (_Error) {
 		return;

@@ -1071,7 +1071,7 @@ static const char * const excludeArray[] = {
    "java/lang/reflect/AccessibleObject.invokeD(Ljava/lang/Object;[Ljava/lang/Object;)D",
    "java/lang/reflect/AccessibleObject.invokeL(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
    "java/security/AccessController.doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;",
-   "java/security/AccessController.doPrivileged(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;"
+   "java/security/AccessController.doPrivileged(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;",
    "java/security/AccessController.doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;[Ljava/security/Permission;)Ljava/lang/Object;",
    "java/security/AccessController.doPrivileged(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;[Ljava/security/Permission;)Ljava/lang/Object;"
 };
@@ -1186,7 +1186,7 @@ TR_ResolvedJ9MethodBase::isCold(TR::Compilation * comp, bool isIndirectCall, TR:
 
    // For methods that are resolved but are still interpreted and have high counts
    // we can assume the method is cold
-   // We do this for direct calls and currenly not-overridden virtual calls
+   // We do this for direct calls and currently not-overridden virtual calls
    // For overridden virtual calls we may decide at some point to traverse all the
    // existing targets to see if they are all interpreted with high counts
    //
@@ -1228,7 +1228,7 @@ TR_ResolvedJ9MethodBase::isCold(TR::Compilation * comp, bool isIndirectCall, TR:
    if ((!comp->getOption(TR_DisableDFP)) &&
        (
 #ifdef TR_TARGET_S390
-       TR::Compiler->target.cpu.getS390SupportsDFP() ||
+       TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility() ||
 #endif
        TR::Compiler->target.cpu.supportsDecimalFloatingPoint()) && sym != NULL)
       {
@@ -1312,7 +1312,7 @@ TR_ResolvedJ9MethodBase::_genMethodILForPeeking(TR::ResolvedMethodSymbol *method
 
    c->setPeekingSymRefTab(newSymRefTab);
 
-   // Do this so that all intermedate calls to c->getSymRefTab()
+   // Do this so that all intermediate calls to c->getSymRefTab()
    // in codegen.dev go to the new symRefTab
    //
    c->setCurrentSymRefTab(newSymRefTab);
@@ -2183,7 +2183,7 @@ TR_ResolvedRelocatableJ9Method::createResolvedMethodFromJ9Method(TR::Compilation
    if (comp->getOption(TR_DisableDFP) ||
        (!(TR::Compiler->target.cpu.supportsDecimalFloatingPoint()
 #ifdef TR_TARGET_S390
-       || TR::Compiler->target.cpu.getS390SupportsDFP()
+       || TR::Compiler->target.cpu.getSupportsDecimalFloatingPointFacility()
 #endif
          ) ||
           !TR_J9MethodBase::isBigDecimalMethod(j9method)))
@@ -6026,8 +6026,8 @@ TR_ResolvedJ9Method::isConstantDynamic(I_32 cpIndex)
 // If first slot is non null, the CP entry is resolved to a non-null value.
 // Else if second slot is the class object of j/l/Void, the CP entry is resolved to null (0) value.
 // We retrieve the Void class object via javaVM->voidReflectClass->classObject,
-// which is protected by VMAccessCrtitical section to ensure vm access.
-// Other casese, the CP entry is considered unresolved.
+// which is protected by VMAccessCritical section to ensure vm access.
+// Other cases, the CP entry is considered unresolved.
 bool
 TR_ResolvedJ9Method::isUnresolvedConstantDynamic(I_32 cpIndex)
    {

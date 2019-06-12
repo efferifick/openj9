@@ -406,11 +406,7 @@ private ClassLoader(Void staticMethodHolder, String classLoaderName, ClassLoader
 			VM.initializeClassLoader(this, VM.J9_CLASSLOADER_TYPE_OTHERS, isParallelCapable);
 		}
 /*[IF Sidecar19-SE]*/
-/*[IF Sidecar19-SE-OpenJ9]
 		unnamedModule = new Module(this);
-/*[ELSE]*/
-		unnamedModule = SharedSecrets.getJavaLangReflectModuleAccess().defineUnnamedModule(this);
-/*[ENDIF]*/
 /*[ENDIF]*/
 	} 
 /*[IF Sidecar19-SE]*/	
@@ -424,11 +420,7 @@ private ClassLoader(Void staticMethodHolder, String classLoaderName, ClassLoader
 			// Assuming the second classloader initialized is platform classloader
 			VM.initializeClassLoader(this, VM.J9_CLASSLOADER_TYPE_PLATFORM, false);
 			specialLoaderInited = true;
-/*[IF Sidecar19-SE-OpenJ9]
 			unnamedModule = new Module(this);
-/*[ELSE]*/
-			unnamedModule = SharedSecrets.getJavaLangReflectModuleAccess().defineUnnamedModule(this);
-/*[ENDIF]*/
 		}
 	}
 	this.classLoaderName = classLoaderName;
@@ -538,6 +530,18 @@ protected final Class<?> defineClass (
 		ProtectionDomain protectionDomain) 
 		throws java.lang.ClassFormatError 
 {
+	return defineClassInternal(className, classRep, offset, length, protectionDomain, false /* allowNullProtectionDomain */);
+}
+
+final Class<?> defineClassInternal(
+		final String className, 
+		final byte[] classRep, 
+		final int offset, 
+		final int length, 
+		ProtectionDomain protectionDomain,
+		boolean allowNullProtectionDomain)
+		throws java.lang.ClassFormatError 
+{
 	Certificate[] certs = null; 
 	if (protectionDomain != null) {
 		final CodeSource cs = protectionDomain.getCodeSource();
@@ -555,7 +559,7 @@ protected final Class<?> defineClass (
 		throw new ArrayIndexOutOfBoundsException();
 	}
 
-	if (protectionDomain == null)	{
+	if ((protectionDomain == null) && !allowNullProtectionDomain) {
 		protectionDomain = getDefaultProtectionDomain();
 	}
 	

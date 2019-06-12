@@ -73,6 +73,7 @@ J9::CodeGenerator::CodeGenerator() :
       OMR::CodeGeneratorConnector(),
    _gpuSymbolMap(self()->comp()->allocator()),
    _stackLimitOffsetInMetaData(self()->comp()->fej9()->thisThreadGetStackLimitOffset()),
+   _uncommonedNodes(self()->comp()->trMemory(), stackAlloc),
    _liveMonitors(NULL)
    {
    }
@@ -349,16 +350,17 @@ J9::CodeGenerator::lowerCompressedRefs(
 
    if (loadOrStoreNode->getOpCode().isLoadIndirect() && shouldBeCompressed)
       {
-      if (TR::Compiler->target.cpu.isZ() && TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads())
+      if (TR::Compiler->target.cpu.isZ() && TR::Compiler->om.readBarrierType() != gc_modron_readbar_none)
          {
-         dumpOptDetails(self()->comp(), "compression sequence %p is not required for loads under concurrent scavenge on Z.\n", node);
+         dumpOptDetails(self()->comp(), "converting to ardbari %p under concurrent scavenge on Z.\n", node);
+         self()->createReferenceReadBarrier(treeTop, loadOrStoreNode);
          return;
          }
 
       // base object
       address = loadOrStoreNode->getFirstChild();
-      loadOrStoreOp = TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads() || loadOrStoreNode->getOpCode().isReadBar() ? self()->comp()->il.opCodeForIndirectReadBarrier(TR::Int32) :
-                                                                                   self()->comp()->il.opCodeForIndirectLoad(TR::Int32);
+      loadOrStoreOp = TR::Compiler->om.readBarrierType() != gc_modron_readbar_none || loadOrStoreNode->getOpCode().isReadBar() ? self()->comp()->il.opCodeForIndirectReadBarrier(TR::Int32) :
+                                                                                                                                 self()->comp()->il.opCodeForIndirectLoad(TR::Int32);
       }
    else if ((loadOrStoreNode->getOpCode().isStoreIndirect() ||
               loadOrStoreNode->getOpCodeValue() == TR::arrayset) &&
@@ -586,8 +588,8 @@ J9::CodeGenerator::preLowerTrees()
 */
 
    // For dual operator lowering
-   _uncommmonedNodes.reset();
-   _uncommmonedNodes.init(64, true);
+   _uncommonedNodes.reset();
+   _uncommonedNodes.init(64, true);
    }
 
 
@@ -724,49 +726,14 @@ J9::CodeGenerator::lowerTreesPreChildrenVisit(TR::Node *parent, TR::TreeTop *tre
 
    // J9
    //
-   TR::ILOpCodes parentOpCodeValue = parent->getOpCodeValue();
    if (self()->comp()->useCompressedPointers())
       {
-      if (parentOpCodeValue == TR::compressedRefs)
+      if (parent->getOpCodeValue() == TR::compressedRefs)
          self()->lowerCompressedRefs(treeTop, parent, visitCount, NULL);
       }
-   else if (TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads() && !TR::Compiler->target.cpu.isZ())
+   else if (TR::Compiler->om.readBarrierType() != gc_modron_readbar_none)
       {
-      if (parentOpCodeValue == TR::aloadi)
-         {
-         TR::Symbol* symbol = parent->getSymbolReference()->getSymbol();
-         // isCollectedReference() responds false to generic int shadows because their type
-         // is int. However, address type generic int shadows refer to collected slots.
-         if (symbol == TR::comp()->getSymRefTab()->findGenericIntShadowSymbol() || symbol->isCollectedReference())
-            {
-            TR::Node::recreate(parent, TR::ardbari);
-            if (treeTop->getNode()->getOpCodeValue() == TR::NULLCHK                  &&
-                treeTop->getNode()->getChild(0)->getOpCodeValue() != TR::PassThrough &&
-                treeTop->getNode()->getChild(0)->getChild(0) == parent)
-               {
-               treeTop->insertBefore(TR::TreeTop::create(self()->comp(),
-                                                         TR::Node::createWithSymRef(TR::NULLCHK, 1, 1,
-                                                                                    TR::Node::create(TR::PassThrough, 1, parent),
-                                                                                    treeTop->getNode()->getSymbolReference())));
-               treeTop->getNode()->setSymbolReference(NULL);
-               TR::Node::recreate(treeTop->getNode(), TR::treetop);
-               }
-            else if (treeTop->getNode()->getOpCodeValue() == TR::NULLCHK &&
-                     treeTop->getNode()->getChild(0) == parent)
-               {
-               treeTop->insertBefore(TR::TreeTop::create(self()->comp(),
-                                                         TR::Node::createWithSymRef(TR::NULLCHK, 1, 1,
-                                                                                    TR::Node::create(TR::PassThrough, 1, parent->getChild(0)),
-                                                                                    treeTop->getNode()->getSymbolReference())));
-               treeTop->getNode()->setSymbolReference(NULL);
-               TR::Node::recreate(treeTop->getNode(), TR::treetop);
-               }
-            else
-               {
-               treeTop->insertBefore(TR::TreeTop::create(self()->comp(), TR::Node::create(parent, TR::treetop, 1, parent)));
-               }
-            }
-         }
+      self()->createReferenceReadBarrier(treeTop, parent);
       }
 
    // J9
@@ -780,6 +747,47 @@ J9::CodeGenerator::lowerTreesPreChildrenVisit(TR::Node *parent, TR::TreeTop *tre
 
    }
 
+void
+J9::CodeGenerator::createReferenceReadBarrier(TR::TreeTop* treeTop, TR::Node* parent)
+   {
+   if (parent->getOpCodeValue() != TR::aloadi)
+      return;
+
+   TR::Symbol* symbol = parent->getSymbolReference()->getSymbol();
+   // isCollectedReference() responds false to generic int shadows because their type
+   // is int. However, address type generic int shadows refer to collected slots.
+
+   if (symbol == TR::comp()->getSymRefTab()->findGenericIntShadowSymbol() || symbol->isCollectedReference())
+      {
+      TR::Node::recreate(parent, TR::ardbari);
+      if (treeTop->getNode()->getOpCodeValue() == TR::NULLCHK                  &&
+          treeTop->getNode()->getChild(0)->getOpCodeValue() != TR::PassThrough &&
+          treeTop->getNode()->getChild(0)->getChild(0) == parent)
+         {
+         treeTop->insertBefore(TR::TreeTop::create(self()->comp(),
+                                                   TR::Node::createWithSymRef(TR::NULLCHK, 1, 1,
+                                                                              TR::Node::create(TR::PassThrough, 1, parent),
+                                                                              treeTop->getNode()->getSymbolReference())));
+         treeTop->getNode()->setSymbolReference(NULL);
+         TR::Node::recreate(treeTop->getNode(), TR::treetop);
+         }
+      else if (treeTop->getNode()->getOpCodeValue() == TR::NULLCHK &&
+               treeTop->getNode()->getChild(0) == parent)
+         {
+         treeTop->insertBefore(TR::TreeTop::create(self()->comp(),
+                                                   TR::Node::createWithSymRef(TR::NULLCHK, 1, 1,
+                                                                              TR::Node::create(TR::PassThrough, 1, parent->getChild(0)),
+                                                                              treeTop->getNode()->getSymbolReference())));
+         treeTop->getNode()->setSymbolReference(NULL);
+         TR::Node::recreate(treeTop->getNode(), TR::treetop);
+         }
+      else
+         {
+         treeTop->insertBefore(TR::TreeTop::create(self()->comp(), TR::Node::create(parent, TR::treetop, 1, parent)));
+         }
+      }
+
+   }
 
 void
 J9::CodeGenerator::lowerTreeIfNeeded(
@@ -2904,6 +2912,27 @@ void J9::CodeGenerator::addProjectSpecializedPairRelocation(uint8_t *location, u
          generatingFileName, generatingLineNumber, node);
    }
 
+
+TR::Node *
+J9::CodeGenerator::createOrFindClonedNode(TR::Node *node, int32_t numChildren)
+   {
+   TR_HashId index;
+   if (!_uncommonedNodes.locate(node->getGlobalIndex(), index))
+      {
+      // has not been uncommoned already, clone and store for later
+      TR::Node *clone = TR::Node::copy(node, numChildren);
+      _uncommonedNodes.add(node->getGlobalIndex(), index, clone);
+      node = clone;
+      }
+   else
+      {
+      // found previously cloned node
+      node = (TR::Node *) _uncommonedNodes.getData(index);
+      }
+   return node;
+   }
+
+
 void
 J9::CodeGenerator::jitAddUnresolvedAddressMaterializationToPatchOnClassRedefinition(void *firstInstruction)
    {
@@ -2939,9 +2968,9 @@ J9::CodeGenerator::compressedReferenceRematerialization()
    // 1. In Guarded Storage, we can't not do a guarded load because the object that is loaded may
    // not be in the root set, and as a consequence, may get moved.
    // 2. For read barriers in field watch, the vmhelpers are GC points and therefore the object might be moved
-   if (TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads() || self()->comp()->getOption(TR_EnableFieldWatch))
+   if (TR::Compiler->om.readBarrierType() != gc_modron_readbar_none || self()->comp()->getOption(TR_EnableFieldWatch))
       {
-      if (TR::Compiler->om.shouldGenerateReadBarriersForFieldLoads())
+      if (TR::Compiler->om.readBarrierType() != gc_modron_readbar_none)
          traceMsg(self()->comp(), "The compressedrefs remat opt is disabled because Concurrent Scavenger is enabled\n");
       if (self()->comp()->getOption(TR_EnableFieldWatch))
          traceMsg(self()->comp(), "The compressedrefs remat opt is disabled because field watch is enabled\n");
@@ -3347,9 +3376,10 @@ J9::CodeGenerator::rematerializeCompressedRefs(
       TR::Node *child = node->getChild(i);
       self()->rematerializeCompressedRefs(autoSymRef, tt, node, i, child, visitCount, rematerializedNodes);
       }
-
+   
+   static bool disableBranchlessPassThroughNULLCHK = feGetEnv("TR_disableBranchlessPassThroughNULLCHK") != NULL;
    if (node->getOpCode().isNullCheck() && reference &&
-          (!isLowMemHeap || self()->performsChecksExplicitly() || (node->getFirstChild()->getOpCodeValue() == TR::PassThrough)) &&
+          (!isLowMemHeap || self()->performsChecksExplicitly() || (disableBranchlessPassThroughNULLCHK && node->getFirstChild()->getOpCodeValue() == TR::PassThrough)) &&
           ((node->getFirstChild()->getOpCodeValue() == TR::l2a) ||
            (reference->getOpCodeValue() == TR::l2a)) &&
          performTransformation(self()->comp(), "%sTransforming null check reference %p in null check node %p to be checked explicitly\n", OPT_DETAILS, reference, node))
@@ -4647,7 +4677,7 @@ J9::CodeGenerator::generateCatchBlockBBStartPrologue(
       {
       // Note we should not use `fenceInstruction` here because it is not the first instruction in this BB. The first
       // instruction is a label that incoming branches will target. We will use this label (first instruction in the
-      // block) in `createMethodMetaData` to populate a list of non-mergable GC maps so as to ensure the GC map at the
+      // block) in `createMethodMetaData` to populate a list of non-mergeable GC maps so as to ensure the GC map at the
       // catch block entry is always present if requested.
       node->getBlock()->getFirstInstruction()->setNeedsGCMap();
       }

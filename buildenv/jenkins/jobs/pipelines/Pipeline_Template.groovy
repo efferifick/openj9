@@ -27,40 +27,41 @@ if (!binding.hasVariable('VENDOR_REPO_DEFAULT')) VENDOR_REPO_DEFAULT = ''
 if (!binding.hasVariable('VENDOR_BRANCH_DEFAULT')) VENDOR_BRANCH_DEFAULT = ''
 if (!binding.hasVariable('VENDOR_CREDENTIALS_ID_DEFAULT')) VENDOR_CREDENTIALS_ID_DEFAULT = ''
 if (!binding.hasVariable('DISCARDER_NUM_BUILDS')) DISCARDER_NUM_BUILDS = '1'
-if (!binding.hasVariable('DISCARDER_NUM_ARTIFACTS')) DISCARDER_NUM_ARTIFACTS = '1'
+if (!binding.hasVariable('GIT_URI')) GIT_URI = 'https://github.com/eclipse/openj9.git'
+if (!binding.hasVariable('SOURCE_BRANCH')) SOURCE_BRANCH = 'refs/heads/master'
+if (!binding.hasVariable('GIT_REFSPEC')) GIT_REFSPEC = ''
+if (!binding.hasVariable('LIGHTWEIGHT_CHECKOUT')) LIGHTWEIGHT_CHECKOUT = true
 
-def GIT_URI = 'https://github.com/eclipse/openj9.git'
-def GIT_BRANCH = 'refs/heads/master'
-
-def pipelineScript = ''
-if (jobType == 'build'){
+if (jobType == 'build') {
     pipelineScript = 'buildenv/jenkins/jobs/builds/Build-Test-Any-Platform'
-} else if (jobType == 'pipeline'){
+} else if (jobType == 'pipeline') {
     pipelineScript = 'buildenv/jenkins/jobs/pipelines/Pipeline-Build-Test-Any-Platform'
+} else {
+    error "Unknown build type:'${jobType}'"
 }
 
 pipelineJob("$JOB_NAME") {
-    description('<h1>THIS IS AN AUTOMATICALLY GENERATED JOB DO NOT MODIFY, IT WILL BE OVERWRITTEN.</h1><p>This job is defined in Pipeline_Template.groovy in the openj9 repo, if you wish to change it modify that</p>')
+    description('<h3>THIS IS AN AUTOMATICALLY GENERATED JOB DO NOT MODIFY, IT WILL BE OVERWRITTEN.</h3><p>This job is defined in Pipeline_Template.groovy in the openj9 repo, if you wish to change it modify that</p>')
     definition {
         cpsScm {
             scm {
                 git {
                     remote {
                         url(GIT_URI)
+                        refspec(GIT_REFSPEC)
                     }
-                    branch("${GIT_BRANCH}")
+                    branch("${SOURCE_BRANCH}")
                     extensions {
                         cleanBeforeCheckout()
                     }
                 }
             }
             scriptPath(pipelineScript)
-            lightweight(true)
+            lightweight(LIGHTWEIGHT_CHECKOUT)
         }
     }
     logRotator {
         numToKeep(DISCARDER_NUM_BUILDS.toInteger())
-        artifactNumToKeep(DISCARDER_NUM_ARTIFACTS.toInteger())
     }
     parameters {
         choiceParam('SDK_VERSION', ["${SDK_VERSION}"])
@@ -84,12 +85,16 @@ pipelineJob("$JOB_NAME") {
         stringParam('BUILD_IDENTIFIER')
         stringParam('ghprbGhRepository')
         stringParam('ghprbActualCommit')
+        stringParam('ghprbPullId')
+        stringParam('ghprbCommentBody')
+        stringParam('ghprbTargetBranch')
         stringParam('EXTRA_GETSOURCE_OPTIONS')
         stringParam('EXTRA_CONFIGURE_OPTIONS')
         stringParam('EXTRA_MAKE_OPTIONS')
         stringParam('OPENJDK_CLONE_DIR')
         stringParam('PERSONAL_BUILD')
-        
+        stringParam('CUSTOM_DESCRIPTION')
+
         if (jobType == 'pipeline'){
             stringParam('TESTS_TARGETS')
             stringParam('BUILD_NODE')

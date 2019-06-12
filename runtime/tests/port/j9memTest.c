@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2016 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -184,7 +184,7 @@ j9mem_test0(struct J9PortLibrary *portLibrary)
 	/* Verify that the memory management function pointers are non NULL */
 	
 	/* Not tested, implementation dependent.  No known functionality.
-	 * Startup is private to the portlibary, it is not re-entrant safe
+	 * Startup is private to the portlibrary, it is not re-entrant safe
 	 */
 	if (NULL == OMRPORT_FROM_J9PORT(PORTLIB)->mem_startup) {
 		outputErrorMessage(PORTTEST_ERROR_ARGS, "portLibrary->mem_startup is NULL\n");
@@ -486,7 +486,7 @@ j9mem_test5(struct J9PortLibrary *portLibrary)
  * 
  * Self allocating port libraries call a function not available via the port library
  * table.  Need to verify that these functions have been correctly implemented.  These
- * functios are called by the port library management routines in @ref j9port.c "j9port.c".
+ * functions are called by the port library management routines in @ref j9port.c "j9port.c".
  * The API for these functions clearly state they must be implemented.
  * 
  * Verify @ref j9mem.c::j9mem_allocate_portLibrary "j9mem_allocate_portLibrary()" allocates
@@ -612,7 +612,7 @@ j9mem_test7_allocate32(struct J9PortLibrary *portLibrary, int randomSeed)
 	PORT_ACCESS_FROM_PORT(portLibrary);
 	const char* testName = "j9mem_test7_allocate32";
 	
-	/* Use a more exhausive size array for 64 bit platforms to exercise the j9heap API.
+	/* Use a more exhaustive size array for 64 bit platforms to exercise the j9heap API.
 	 * Retain the old sizes for regular 32 bit VMs, including ME platforms with very limited amount of physical memory.
 	 */
 #if defined(J9VM_ENV_DATA64)

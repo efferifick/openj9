@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 2017, 2018 IBM Corp. and others
+ * Copyright (c) 2017, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -115,7 +115,7 @@ public:
 	void acquireVMAccess();
 
 	/**
-	 * Release shared VM acccess.
+	 * Release shared VM access.
 	 */
 	void releaseVMAccess();
 
@@ -137,7 +137,7 @@ public:
 	void acquireExclusiveVMAccess();
 
 	/**
-	 * Release exclusive VM acccess. If no other thread is waiting for exclusive VM access
+	 * Release exclusive VM access. If no other thread is waiting for exclusive VM access
 	 * this method will notify all threads waiting for shared VM access to continue and
 	 * acquire shared VM access.
 	 */
@@ -151,9 +151,7 @@ public:
 
 	void reacquireCriticalHeapAccess(uintptr_t data);
 
-#if defined(OMR_GC_CONCURRENT_SCAVENGER)
 	void forceOutOfLineVMAccess();
-#endif /* OMR_GC_CONCURRENT_SCAVENGER */
 
 #if defined (OMR_GC_THREAD_LOCAL_HEAP)
 	/**

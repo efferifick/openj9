@@ -20,7 +20,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-exception-2.0 OR LicenseRef-GPL-2.0 WITH Assembly-exception
  *******************************************************************************/
 
-package org.openj9.java;
+package org.openj9.envInfo;
 
 import java.io.*;
 import java.io.IOException;
@@ -99,17 +99,17 @@ public class JavaInfo {
 
 
     public String getJDKImpl() {
-        String impl = System.getProperty("java.vm.vendor");
-        System.out.println("System.getProperty('java.vm.vendor')=" + impl + "\n");
+        String impl = System.getProperty("java.vm.name");
+        System.out.println("System.getProperty('java.vm.name')=" + impl + "\n");
         impl = impl.toLowerCase();
         if (impl.contains("ibm")) {
             return "ibm";
         } else if (impl.contains("openj9")) {
             return "openj9";
-        } else if (impl.contains("oracle") || impl.contains("hotspot") || impl.contains("adoptopenjdk")) {
+        } else if (impl.contains("oracle") || impl.contains("hotspot") || impl.contains("openjdk")) {
             return "hotspot";
         } else {
-            System.out.println("Cannot determine System.getProperty('java.vm.vendor')=" + impl + "\n");
+            System.out.println("Cannot determine System.getProperty('java.vm.name')=" + impl + "\n");
             return null;
         }
     }

@@ -230,7 +230,9 @@ static char * newPath = NULL;
 J9JavaVM *BFUjavaVM = NULL;
 
 static jclass jlClass = NULL;
+#ifdef J9VM_IVE_RAW_BUILD
 static jfieldID classNameFID = NULL;
+#endif /* J9VM_IVE_RAW_BUILD */
 static jmethodID classDepthMID = NULL;
 static jmethodID classLoaderDepthMID = NULL;
 static jmethodID currentClassLoaderMID = NULL;
@@ -491,7 +493,7 @@ static void freeGlobals(void)
 {
 	free(newPath);
 	newPath = NULL;
-	
+
 	free(j9binBuffer);
 	j9binBuffer = NULL;
 
@@ -503,7 +505,7 @@ static void freeGlobals(void)
 
 	free(j9libvmBuffer);
 	j9libvmBuffer = NULL;
-	
+
 	free(j9Buffer);
 	j9Buffer = NULL;
 }
@@ -581,8 +583,8 @@ jint JNICALL DestroyJavaVM(JavaVM * javaVM)
 
 		BFUjavaVM = NULL;
 	} else {
-		/* We are not shutting down the  port library but we still 
-		 * need to make sure memcheck gets a chance to print its 
+		/* We are not shutting down the  port library but we still
+		 * need to make sure memcheck gets a chance to print its
 		 * report.
 		 */
 		memoryCheck_print_report(&j9portLibrary);
@@ -622,7 +624,7 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserv
 }
 
 
-static BOOLEAN 
+static BOOLEAN
 preloadLibraries(void)
 {
 	char* tempchar = 0;
@@ -641,7 +643,7 @@ preloadLibraries(void)
 		return TRUE;
 	}
 	beenRun = TRUE;
-	
+
 	unicodeDLLNameLength = GetModuleFileNameW(jvm_dllHandle, unicodeDLLName, (J9_MAX_PATH + 1));
 	/* Don't use truncated path */
 	if (unicodeDLLNameLength > (DWORD)J9_MAX_PATH) {
@@ -706,7 +708,7 @@ preloadLibraries(void)
 	DBG_MSG(("j9libBuffer   = <%s>\n", jvmBufferData(j9libBuffer)));
 	DBG_MSG(("j9libvmBuffer = <%s>\n", jvmBufferData(j9libvmBuffer)));
 	DBG_MSG(("j9Buffer      = <%s>\n", jvmBufferData(j9Buffer)));
-	
+
 #if !CALL_BUNDLED_FUNCTIONS_DIRECTLY
 	vmDLL = (HINSTANCE) preloadLibrary(vmDllName, TRUE);
 	preloadLibrary(J9_HOOKABLE_DLL_NAME, TRUE);
@@ -763,7 +765,7 @@ preloadLibraries(void)
 	preloadLibrary(J9_ZIP_DLL_NAME, TRUE);
 
 #ifdef J9_CLEAR_VM_INTERFACE_DLL_NAME
-	/* CMVC 142575: Harmony JDWP sits apart for the JVM natives including the vmi.  
+	/* CMVC 142575: Harmony JDWP sits apart for the JVM natives including the vmi.
 	 * We must preload the library so that it can be found when JDWP tries to load it. */
 	preloadLibrary(J9_CLEAR_VM_INTERFACE_DLL_NAME, TRUE);
 #endif
@@ -1005,7 +1007,7 @@ removeSuffix(char *string, const char *suffix)
 #endif /* JAVA_SPEC_VERSION == 8 */
 
 #if defined(J9UNIX) || defined(J9ZOS390)
-static BOOLEAN 
+static BOOLEAN
 preloadLibraries(void)
 {
 	void *vmDLL, *threadDLL, *portDLL;
@@ -1203,7 +1205,7 @@ preloadLibraries(void)
 	}
 
 #ifdef J9_CLEAR_VM_INTERFACE_DLL_NAME
-	/* CMVC 142575: Harmony JDWP sits apart for the JVM natives including the vmi.  
+	/* CMVC 142575: Harmony JDWP sits apart for the JVM natives including the vmi.
 	 * We must preload the library so that it can be found when JDWP tries to load it. */
 	preloadLibrary(J9_CLEAR_VM_INTERFACE_DLL_NAME, TRUE);
 #endif /* J9_CLEAR_VM_INTERFACE_DLL_NAME */
@@ -1301,7 +1303,7 @@ typedef struct J9SpecialArguments {
  * and return the total size required for the strings
  */
 static UDATA
-initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs) 
+initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs)
 {
 	BOOLEAN xCheckFound = FALSE;
 	const char *xCheckString = "-Xcheck";
@@ -1344,7 +1346,7 @@ initialArgumentScan(JavaVMInitArgs *args, J9SpecialArguments *specialArgs)
 	}
 
 	if (TRUE == xCheckFound) {
-		/* scan backwards for -Xcheck:memory.  There may be multiple -Xcheck options, so check them all, stop when we hit -Xcheck:memeory */
+		/* scan backwards for -Xcheck:memory.  There may be multiple -Xcheck options, so check them all, stop when we hit -Xcheck:memory */
 		for( argCursor = args->nOptions - 1 ; argCursor >= 0; argCursor-- ) {
 			char* memcheckArgs[2];
 
@@ -1661,7 +1663,7 @@ jint JNICALL JNI_CreateJavaVM(JavaVM **pvm, void **penv, void *vm_args) {
 
 	/* no tracing for this function, since it's unlikely to be used once the VM is running and the trace engine is initialized */
 	preloadLibraries();
-	
+
 #ifdef WIN32
 	if (GetCurrentDirectoryW(J9_MAX_PATH, unicodeTemp) == 0) {
 		strcpy(cwd, "\\");
@@ -1699,11 +1701,11 @@ jint JNICALL JNI_CreateJavaVM(JavaVM **pvm, void **penv, void *vm_args) {
 #if defined(J9ZOS390)
 	/*
 	 * When we init the port lib, the 'Signal Reporter' thread will be spawned.
-	 * On z/OS, we need to know whether this thread should be spawned as a medium 
+	 * On z/OS, we need to know whether this thread should be spawned as a medium
 	 * or heavy weight thread. We do this here but we will only take into
 	 * account JAVA_THREAD_MODEL - i.e., if the customer is using '-Xthr:tw=heavy'
-	 * instead of the env var, the 'Signal Reporter' thread will still be launched 
-	 * as a medium weight thread (see PR100512). 
+	 * instead of the env var, the 'Signal Reporter' thread will still be launched
+	 * as a medium weight thread (see PR100512).
 	 */
 	if (!setZOSThrWeight()) {
 		return JNI_ERR;
@@ -1821,7 +1823,7 @@ jint JNICALL JNI_CreateJavaVM(JavaVM **pvm, void **penv, void *vm_args) {
 		 * The catalog has already been set above. */
 		memoryCheck_initialize(&j9portLibrary, "all", NULL);
 	}
-	
+
 	{
 		char *optionsDefaultFileLocation = NULL;
 		BOOLEAN doAddExtDir = FALSE;
@@ -1860,29 +1862,31 @@ jint JNICALL JNI_CreateJavaVM(JavaVM **pvm, void **penv, void *vm_args) {
 		}
 		/* now add implicit VM arguments */
 		if (
-				/* Add the default options file */
-				(0 != addOptionsDefaultFile(&j9portLibrary, &vmArgumentsList, optionsDefaultFileLocation, localVerboseLevel))
-				|| (0 != addXjcl(&j9portLibrary, &vmArgumentsList, J2SE_CURRENT_VERSION))
-				|| (0 != addBootLibraryPath(&j9portLibrary, &vmArgumentsList, "-Dcom.ibm.oti.vm.bootstrap.library.path=",
-						jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer)))
-				|| (0 != addBootLibraryPath(&j9portLibrary, &vmArgumentsList, "-Dsun.boot.library.path=",
-						jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer)))
-				|| (0 != addJavaLibraryPath(&j9portLibrary, &vmArgumentsList, argEncoding, jvmInSubdir,
-						jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer),
-						libpathValue, ldLibraryPathValue))
-				|| (0 != addJavaHome(&j9portLibrary, &vmArgumentsList, altJavaHomeSpecified, jvmBufferData(j9libBuffer)))
-				|| (doAddExtDir && (0 != addExtDir(&j9portLibrary, &vmArgumentsList, jvmBufferData(j9libBuffer), args, J2SE_CURRENT_VERSION)))
-				|| (0 != addUserDir(&j9portLibrary, &vmArgumentsList, cwd))
-				|| (0 != addJavaPropertiesOptions(&j9portLibrary, &vmArgumentsList, localVerboseLevel))
-				|| (0 != addJarArguments(&j9portLibrary, &vmArgumentsList, specialArgs.executableJarPath, zipFuncs, localVerboseLevel))
-				|| (0 != addEnvironmentVariables(&j9portLibrary, args, &vmArgumentsList, localVerboseLevel))
-				|| (0 != addLauncherArgs(&j9portLibrary, args, launcherArgumentsSize, &vmArgumentsList,
-						&xServiceBuffer, argEncoding, localVerboseLevel))
+			/* Add the default options file */
+			(0 != addOptionsDefaultFile(&j9portLibrary, &vmArgumentsList, optionsDefaultFileLocation, localVerboseLevel))
+			|| (0 != addXjcl(&j9portLibrary, &vmArgumentsList, J2SE_CURRENT_VERSION))
+			|| (0 != addBootLibraryPath(&j9portLibrary, &vmArgumentsList, "-Dcom.ibm.oti.vm.bootstrap.library.path=",
+					jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer)))
+			|| (0 != addBootLibraryPath(&j9portLibrary, &vmArgumentsList, "-Dsun.boot.library.path=",
+					jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer)))
+			|| (0 != addJavaLibraryPath(&j9portLibrary, &vmArgumentsList, argEncoding, jvmInSubdir,
+					jvmBufferData(j9binBuffer), jvmBufferData(jrebinBuffer),
+					libpathValue, ldLibraryPathValue))
+			|| (0 != addJavaHome(&j9portLibrary, &vmArgumentsList, altJavaHomeSpecified, jvmBufferData(j9libBuffer)))
+			|| (doAddExtDir && (0 != addExtDir(&j9portLibrary, &vmArgumentsList, jvmBufferData(j9libBuffer), args, J2SE_CURRENT_VERSION)))
+			|| (0 != addUserDir(&j9portLibrary, &vmArgumentsList, cwd))
+#if !defined(OPENJ9_BUILD)
+			|| (0 != addJavaPropertiesOptions(&j9portLibrary, &vmArgumentsList, localVerboseLevel))
+#endif /* defined(OPENJ9_BUILD) */
+			|| (0 != addJarArguments(&j9portLibrary, &vmArgumentsList, specialArgs.executableJarPath, zipFuncs, localVerboseLevel))
+			|| (0 != addEnvironmentVariables(&j9portLibrary, args, &vmArgumentsList, localVerboseLevel))
+			|| (0 != addLauncherArgs(&j9portLibrary, args, launcherArgumentsSize, &vmArgumentsList,
+					&xServiceBuffer, argEncoding, localVerboseLevel))
 #ifdef J9VM_OPT_HARMONY
-				/* pass in the Harmony library */
-				|| (0 != addHarmonyPortLibrary(&j9portLibrary, &vmArgumentsList, localVerboseLevel))
+			/* pass in the Harmony library */
+			|| (0 != addHarmonyPortLibrary(&j9portLibrary, &vmArgumentsList, localVerboseLevel))
 #endif /* J9VM_OPT_HARMONY */
-				|| (0 != addXserviceArgs(&j9portLibrary, &vmArgumentsList, xServiceBuffer, localVerboseLevel))
+			|| (0 != addXserviceArgs(&j9portLibrary, &vmArgumentsList, xServiceBuffer, localVerboseLevel))
 		) {
 			result = JNI_ERR;
 			goto exit;
@@ -1931,7 +1935,7 @@ jint JNICALL JNI_CreateJavaVM(JavaVM **pvm, void **penv, void *vm_args) {
 
 #if CALL_BUNDLED_FUNCTIONS_DIRECTLY
 	result = J9_CreateJavaVM((JavaVM**)&BFUjavaVM, penv, &createParams);
-#else 
+#else
 	result = globalCreateVM((JavaVM**)&BFUjavaVM, penv, &createParams);
 #endif /* CALL_BUNDLED_FUNCTIONS_DIRECTLY  */
 
@@ -2034,7 +2038,7 @@ exit:
 
 /**
  *	jint JNICALL JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
- *  Return pointers to all the virtual machine instances that hvae been
+ *  Return pointers to all the virtual machine instances that have been
  *  created.
  *	This provides an invocation API that runs the J9 VM in BFU/sidecar mode
  *
@@ -2079,7 +2083,7 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 /**
  *	jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *vm_args)
  *  Return a default configuration for the java virtual machine
- *  implementaiton.
+ *  implementation.
  *	This provides an invocation API that runs the J9 VM in BFU/sidecar mode
  *
  *  @param vm_args pointer to a vm-specific initialization structure
@@ -2092,18 +2096,22 @@ JNI_GetCreatedJavaVMs(JavaVM **vmBuf, jsize bufLen, jsize *nVMs)
 
 jint JNICALL JNI_GetDefaultJavaVMInitArgs(void *vm_args) {
 	UDATA requestedVersion = (UDATA)((JDK1_1InitArgs *)vm_args)->version;
-	
+
 	switch (requestedVersion) {
 	case JNI_VERSION_1_2:
 	case JNI_VERSION_1_4:
 	case JNI_VERSION_1_6:
 	case JNI_VERSION_1_8:
+#if JAVA_SPEC_VERSION >= 9
 	case JNI_VERSION_9:
+#endif /* JAVA_SPEC_VERSION >= 9 */
+#if JAVA_SPEC_VERSION >= 10
 	case JNI_VERSION_10:
+#endif /* JAVA_SPEC_VERSION >= 10 */
 		return JNI_OK;
 	}
-	
-	return JNI_EVERSION;	
+
+	return JNI_EVERSION;
 }
 
 
@@ -2220,7 +2228,7 @@ int isFileInDir(char *dir, char *file){
 	int foundFile = 0;
 
 	dirLength = strlen(dir);
-	/* Constuct 'full' path */
+	/* Construct 'full' path */
 	if (dir[dirLength-1] == DIR_SEPARATOR) {
 		/* remove trailing '/' */
 		dir[dirLength-1] = '\0';
@@ -3173,8 +3181,8 @@ testBackupAndRestoreLibpath(void)
 		failed++;
 	}
 
-	/* The backup path is prefixed by mulitiple colons */
-	printf("TESTCASE_31: The backup path is prefixed by mulitiple colons\n");
+	/* The backup path is prefixed by multiple colons */
+	printf("TESTCASE_31: The backup path is prefixed by multiple colons\n");
 	setLibpath(":::abc");
 	backupLibpath(&bkp, strlen("abc"));
 	setLibpath("abc");
@@ -3591,7 +3599,7 @@ JVM_FindLibraryEntry(void* handle, const char *functionName)
 #elif defined(J9UNIX) || defined(J9ZOS390) /* defined(WIN32) */
 	result = (void*)dlsym( (void*)handle, (char *)functionName );
 #else /* defined(WIN32) */
-#error "Please implemente jvm.c:JVM_FindLibraryEntry(void* handle, const char *functionName)"
+#error "Please implement jvm.c:JVM_FindLibraryEntry(void* handle, const char *functionName)"
 #endif /* defined(WIN32) */
 
 	Trc_SC_FindLibraryEntry_Exit(result);
@@ -3994,11 +4002,11 @@ JVM_Open(const char* filename, jint flags, jint mode)
 #endif
 
 #if defined(J9UNIX) || defined(J9ZOS390)
-#if defined(OSX)
+#if defined(OSX) || defined(J9ZTPF)
 #define EXTRA_OPEN_FLAGS 0
 #else
 #define EXTRA_OPEN_FLAGS O_LARGEFILE
-#endif /* defined(OSX) */
+#endif /* defined(OSX) || defined(J9ZTPF) */
 
 #ifndef O_DSYNC
 #define O_DSYNC O_SYNC
@@ -4653,7 +4661,7 @@ JVM_RawMonitorDestroy(void* mon)
 
 
 /**
- * Moniter enter
+ * Monitor enter
  *
  * @param mon pointer of the monitor
  * @return 0
@@ -5041,7 +5049,7 @@ JVM_Socket(jint domain, jint type, jint protocol)
  *
  * @param descriptor socket file descriptor
  * @param result the number of bytes that can be read without blocking
- * 
+ *
  * @return result of this JVM method, 0 for failure, 1 (or non-zero value) for success
  */
 jint JNICALL
@@ -5121,7 +5129,7 @@ JVM_Timeout(jint descriptor, jint timeout)
 #endif
 
 #if defined(J9UNIX) || defined(J9ZOS390)
-	jint returnVal = 0; 
+	jint returnVal = 0;
 	jint crazyCntr = 10;
 	fd_set fdset;
 #endif /* defined(J9UNIX) || defined(J9ZOS390) */
@@ -5254,11 +5262,11 @@ J9Class* java_lang_Class_vmRef(JNIEnv* env, jobject clazz);
  * in interface version 6.
  */
 jstring JNICALL
-#if (JAVA_SPEC_VERSION < 11) || (JAVA_SPEC_VERSION == 12)
+#if JAVA_SPEC_VERSION < 11
 JVM_GetClassName
-#else /* (JAVA_SPEC_VERSION < 11) || (JAVA_SPEC_VERSION == 12) */
+#else /* JAVA_SPEC_VERSION < 11 */
 JVM_InitClassName
-#endif /* (JAVA_SPEC_VERSION < 11) || (JAVA_SPEC_VERSION == 12) */
+#endif /* JAVA_SPEC_VERSION < 11 */
 (JNIEnv *env, jclass theClass)
 {
 	J9JavaVM* vm = ((J9VMThread*)env)->javaVM;
@@ -5312,13 +5320,13 @@ JVM_InitClassName
 
 			result = (*env)->NewStringUTF(env, name);
 			j9mem_free_memory(name);
-#if (JAVA_SPEC_VERSION >= 11) && (JAVA_SPEC_VERSION != 12)
+#if JAVA_SPEC_VERSION >= 11
 			// JVM_InitClassName is expected to also cache the result in the 'name' field
 			(*env)->SetObjectField(env, theClass, classNameFID, result);
 			if ((*env)->ExceptionCheck(env)) {
 				result = NULL;
 			}
-#endif /* (JAVA_SPEC_VERSION >= 11) && (JAVA_SPEC_VERSION != 12) */
+#endif /* JAVA_SPEC_VERSION >= 11 */
 			return result;
 		}
 	}
@@ -5348,11 +5356,7 @@ JVM_GetInterfaceVersion(void)
 
 	Trc_SC_GetInterfaceVersion_Entry();
 	if (J2SE_CURRENT_VERSION >= J2SE_V11) {
-		if (J2SE_CURRENT_VERSION == J2SE_V12) {
-			result = 5; /* JDK12 hasn't got same update as JDK11 & HEAD */
-		} else {
-			result = 6; /* JDK11 & HEAD */
-		}
+		result = 6;
 	}
 	Trc_SC_GetInterfaceVersion_Exit(result);
 
@@ -5977,12 +5981,12 @@ setZOSThrWeight(void)
 }
 
 /**
- * @return ZOS_THR_WEIGHT_HEAVY or ZOS_THR_WEIGHT_MEDIUM if the customer is 
+ * @return ZOS_THR_WEIGHT_HEAVY or ZOS_THR_WEIGHT_MEDIUM if the customer is
  * explicitly requesting heavy or medium weight threads via the
- * JAVA_THREAD_MODEL env var. Otherwise, it returns 
+ * JAVA_THREAD_MODEL env var. Otherwise, it returns
  * ZOS_THR_WEIGHT_NOT_FOUND.
  */
-static UDATA 
+static UDATA
 checkZOSThrWeightEnvVar(void)
 {
 	UDATA retVal = ZOS_THR_WEIGHT_NOT_FOUND;
@@ -5993,7 +5997,7 @@ checkZOSThrWeightEnvVar(void)
 	if (NULL != val) {
 		/*
 		 * If the customer did not request heavy weight, assume medium.
-		 * Note that the goal here is not to properly parse the env 
+		 * Note that the goal here is not to properly parse the env
 		 * var. This is done in threadParseArguments() and it will flag
 		 * if the customer attempts to pass a bad value in the env var.
 		 */

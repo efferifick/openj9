@@ -299,7 +299,7 @@ class Candidate : public TR_Link<Candidate>
          FillsInStackTrace            = 0x08000000,
          UsesStackTrace               = 0x04000000,
 
-         // Object that is being allocted inside a loop
+         // Object that is being allocated inside a loop
          //
          InsideALoop                  = 0x02000000,
 
@@ -584,7 +584,8 @@ class TR_EscapeAnalysis : public TR::Optimization
    TR_UseDefInfo             *_useDefInfo;
    bool                      _invalidateUseDefInfo;
    TR_BitVector              *_otherDefsForLoopAllocation;
-   TR_BitVector              *_localObjectsValueNumbers;
+   TR_BitVector              *_nonColdLocalObjectsValueNumbers;
+   TR_BitVector              *_allLocalObjectsValueNumbers;
    TR_BitVector              *_notOptimizableLocalObjectsValueNumbers;
    TR_BitVector              *_notOptimizableLocalStringObjectsValueNumbers;
    TR_BitVector              *_blocksWithFlushOnEntry;

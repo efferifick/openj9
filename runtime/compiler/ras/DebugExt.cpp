@@ -1135,7 +1135,7 @@ TR_DebugExt::dxTrPrint(const char* name1, void* addr2, uintptrj_t argCount, cons
 
    /*
     * Re-process arguments here
-    * The delimiter is space or comma (maintain compatability with j9)
+    * The delimiter is space or comma (maintain compatibility with j9)
     * The algorithm is not bullet proof, but should be sufficient for us
     */
    #define ARGSIZE 200
@@ -3021,7 +3021,7 @@ TR_DebugExt::dxPrintRuntimeAssumption(OMR::RuntimeAssumption *ra)
    OMR::RuntimeAssumption *localRuntimeAssumption = (OMR::RuntimeAssumption*) dxMallocAndRead(sizeof(OMR::RuntimeAssumption), ra);
    _dbgPrintf("((OMR::RuntimeAssumption*)0x%p)->_key=0x%x, ", ra, localRuntimeAssumption->_key);
    _dbgPrintf(" ->_next= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNext());
-   _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBody());
+   _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBodyEvenIfDead());
    dxFree(localRuntimeAssumption);
    }
 void
@@ -3034,18 +3034,20 @@ TR_DebugExt::dxPrintRuntimeAssumptionList(OMR::RuntimeAssumption *ra)
       }
    OMR::RuntimeAssumption *localRuntimeAssumption = (OMR::RuntimeAssumption*) dxMallocAndRead(sizeof(OMR::RuntimeAssumption), ra);
    _dbgPrintf("((OMR::RuntimeAssumption*)0x%p)->_key=0x%x, ", ra, localRuntimeAssumption->_key);
-   _dbgPrintf(" ->_next= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNext());
-   _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBody());
-   OMR::RuntimeAssumption *nextRuntimeAssumption = localRuntimeAssumption->getNextAssumptionForSameJittedBody();
+   _dbgPrintf("((OMR::RuntimeAssumption*)0x%p)->isMarkedForDetach()=%d, ", ra, localRuntimeAssumption->isMarkedForDetach());
+   _dbgPrintf(" ->_next= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextEvenIfDead());
+   _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBodyEvenIfDead());
+   OMR::RuntimeAssumption *nextRuntimeAssumption = localRuntimeAssumption->getNextAssumptionForSameJittedBodyEvenIfDead();
    dxFree(localRuntimeAssumption);
 
    while (nextRuntimeAssumption != ra)
       {
       OMR::RuntimeAssumption *localRuntimeAssumption = (OMR::RuntimeAssumption*) dxMallocAndRead(sizeof(OMR::RuntimeAssumption), nextRuntimeAssumption);
       _dbgPrintf("((OMR::RuntimeAssumption*)0x%p)->_key=0x%x, ", nextRuntimeAssumption, localRuntimeAssumption->_key);
-      _dbgPrintf(" ->_next= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNext());
-      _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBody());
-      nextRuntimeAssumption = localRuntimeAssumption->getNextAssumptionForSameJittedBody();
+      _dbgPrintf("((OMR::RuntimeAssumption*)0x%p)->isMarkedForDetach()=%d, ", nextRuntimeAssumption, localRuntimeAssumption->isMarkedForDetach());
+      _dbgPrintf(" ->_next= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextEvenIfDead());
+      _dbgPrintf(" ->_nextAssumptionForSameJittedBody= !trprint runtimeassumption 0x%p\n", localRuntimeAssumption->getNextAssumptionForSameJittedBodyEvenIfDead());
+      nextRuntimeAssumption = localRuntimeAssumption->getNextAssumptionForSameJittedBodyEvenIfDead();
       dxFree(localRuntimeAssumption);
       }
    _dbgPrintf("Finish printing runtimeassumptionlist\n");

@@ -21,7 +21,7 @@
 # First copy your public ssh key into a file named authorized_keys next to the Dockerfile
 # Then include a known_hosts file next to the Dockerfile, with github as a saved host
 # This can be done with "ssh-keyscan github.com >> path_to_dockerfile/known_hosts"
-# Make sure you are in the directory contianing the Dockerfile, authorized_keys file, and known_hosts file
+# Make sure you are in the directory containing the Dockerfile, authorized_keys file, and known_hosts file
 # Then run:
 #   docker build -t openj9 -f Dockerfile .
 #   docker run -it openj9
@@ -40,7 +40,6 @@ RUN yum -y update \
     bzip2 \
     ca-certificates \
     cups-devel \
-    cmake \
     cpio \
     curl-devel `# This is being used for git` \
     elfutils-libelf-devel \
@@ -126,7 +125,21 @@ RUN wget -O - http://cpanmin.us | perl - --self-upgrade \
   && cpanm Text::CSV \
   && cpanm JSON \
   && cpanm XML::Parser
-  
+
+# Install make 4.1
+RUN cd /tmp \
+  && wget -O make-4.1.tar.gz "http://ftp.gnu.org/gnu/make/make-4.1.tar.gz" \
+  && tar xvf make-4.1.tar.gz \
+  && rm -f make-4.1.tar.gz \
+  && cd make-4.1/ \
+  && ./configure \
+  && make \
+  && make install \
+  && rm -f /usr/local/bin/gmake \
+  && ln -s /usr/local/bin/make /usr/local/bin/gmake \
+  && cd .. \
+  && rm -rf /tmp/make-4.1
+
 # Install nasm-2.13.03
 RUN cd /tmp \
   && wget https://www.nasm.us/pub/nasm/releasebuilds/2.13.03/nasm-2.13.03.tar.gz \
@@ -136,6 +149,16 @@ RUN cd /tmp \
   && ./configure -prefix=/usr/local \
   && make install \
   && rm -rf /tmp/nasm-2.13.03
+
+# Install cmake version 3.11.4
+RUN cd /tmp \
+  && wget https://cmake.org/files/v3.11/cmake-3.11.4.tar.gz \
+  && tar xzf cmake-3.11.4.tar.gz \
+  && rm cmake-3.11.4.tar.gz \
+  && cd /tmp/cmake-3.11.4 \
+  && ./configure \
+  && make \
+  && make install
 
 #Building and setting up git version 2.5.3
 RUN cd /usr/src \
@@ -191,7 +214,7 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 # Setup boot JDK for building Java 8
 RUN ln -s java-1.7.0 /usr/lib/jvm/java-1.7.0-openjdk
 
-# Setup boot JDK for building Java 11
+# Setup boot JDK for building Java 11 and 12
 RUN mkdir -p /usr/lib/jvm/adoptojdk-java-11 \
   && cd /usr/lib/jvm/adoptojdk-java-11 \
   && wget -O bootjdk11.tar.gz "https://api.adoptopenjdk.net/v2/binary/releases/openjdk11?openjdk_impl=openj9&os=linux&arch=x64&release=latest&type=jdk&heap_size=normal" \
@@ -200,6 +223,16 @@ RUN mkdir -p /usr/lib/jvm/adoptojdk-java-11 \
   && mv $(ls | grep -i jdk-11) bootjdk11 \
   && mv bootjdk11/* /usr/lib/jvm/adoptojdk-java-11 \
   && rm -rf bootjdk11
+
+# Setup boot JDK for building Java 13 and higher
+RUN mkdir -p /usr/lib/jvm/adoptojdk-java-12 \
+  && cd /usr/lib/jvm/adoptojdk-java-12 \
+  && wget -O bootjdk12.tar.gz "https://api.adoptopenjdk.net/v2/binary/releases/openjdk12?openjdk_impl=openj9&os=linux&arch=x64&release=latest&type=jdk&heap_size=normal" \
+  && tar -xzf bootjdk12.tar.gz \
+  && rm -f bootjdk12.tar.gz \
+  && mv $(ls | grep -i jdk-12) bootjdk12 \
+  && mv bootjdk12/* /usr/lib/jvm/adoptojdk-java-12 \
+  && rm -rf bootjdk12
 
 # Install Freemaker for building OpenJ9. Used in bash ./configure --with-freemarker-jar=<path-to-freemaker-jar>
 RUN cd /home/${USER} \

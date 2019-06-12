@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991, 2017 IBM Corp. and others
+ * Copyright (c) 1991, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -108,17 +108,14 @@ cacheObjectMonitorForLookup(J9JavaVM* vm, J9VMThread* vmStruct, J9ObjectMonitor*
  * @return an initialized J9HashTable on success, otherwise NULL
  */
 static J9HashTable*
-createMonitorTable(J9JavaVM *vm, char *tableName) {
-
-#if defined(J9VM_INTERP_SMALL_MONITOR_SLOT)
-#define MONTABLE_FLAGS J9HASH_TABLE_ALLOCATE_ELEMENTS_USING_MALLOC32
-#else
-#define MONTABLE_FLAGS 0
-#endif
-
+createMonitorTable(J9JavaVM *vm, char *tableName)
+{
+	U_32 flags = 0;
+	if (J9JAVAVM_COMPRESS_OBJECT_REFERENCES(vm)) {
+		flags = J9HASH_TABLE_ALLOCATE_ELEMENTS_USING_MALLOC32;
+	}
 	Assert_VM_false(NULL == tableName);
-	return hashTableNew(OMRPORT_FROM_J9PORT(vm->portLibrary), tableName, 64, sizeof(J9ObjectMonitor), 0, MONTABLE_FLAGS, OMRMEM_CATEGORY_VM, hashMonitorHash, hashMonitorCompare, NULL, vm);
-#undef MONTABLE_FLAGS
+	return hashTableNew(OMRPORT_FROM_J9PORT(vm->portLibrary), tableName, 64, sizeof(J9ObjectMonitor), 0, flags, OMRMEM_CATEGORY_VM, hashMonitorHash, hashMonitorCompare, NULL, vm);
 }
 
 UDATA

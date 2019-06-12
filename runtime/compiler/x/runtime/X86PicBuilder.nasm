@@ -65,15 +65,11 @@ memoryFence:
       test        ecx, J9TR_runtimeFlags_PatchingFenceType
       jz short    doLockOrEsp
 
-      MEMORY_FENCE
+      mfence
       jmp         doneMemoryFence
 
 doLockOrEsp:
-      db          0F0h
-      db          083h
-      db          00Ch
-      db          024h
-      db          000h
+      lock or     dword [esp], 0
 
 doneMemoryFence:
       pop         ecx                                ; restore
@@ -1531,7 +1527,7 @@ mergeIPicSlotCall:
       jnz         short IPicSlotMethodInterpreted
 
       ; We have a compiled method. Claim the trampoline reservation for this
-      ; target method if one doesnt exist for it yet reclaim the trampoline
+      ; target method if one doesn't exist for it yet reclaim the trampoline
       ; space if it already does.
       ;
 mergeUpdateIPicSlotCallWithCompiledMethod:
@@ -2001,7 +1997,7 @@ mergeVPicSlotCall:
       jnz         short VPicSlotMethodIsNative
 
       ; We have a compiled method. Claim the trampoline reservation for this
-      ; target method if one doesnt exist for it yet reclaim the trampoline
+      ; target method if one doesn't exist for it yet reclaim the trampoline
       ; space if it already does.
       ;
 mergeUpdateVPicSlotCallWithCompiledMethod:

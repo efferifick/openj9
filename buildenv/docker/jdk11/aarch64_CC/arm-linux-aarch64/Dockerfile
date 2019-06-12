@@ -42,18 +42,6 @@ RUN apt-get update \
     gcc-7 \
     git \
     git-core \
-    libasound2-dev \
-    libcups2-dev \
-    libdwarf-dev \
-    libelf-dev \
-    libfontconfig1-dev \
-    libfreetype6-dev \
-    libnuma-dev \
-    libx11-dev \
-    libxext-dev \
-    libxrender-dev \
-    libxt-dev \
-    libxtst-dev \
     make \
     pkg-config \
     qemu \
@@ -99,8 +87,8 @@ RUN cd /root \
 ADD \
     http://ftp.us.debian.org/debian/pool/main/a/alsa-lib/libasound2_1.1.3-5_arm64.deb                \
     http://ftp.us.debian.org/debian/pool/main/a/alsa-lib/libasound2-dev_1.1.3-5_arm64.deb            \
-    http://ftp.us.debian.org/debian/pool/main/c/cups/libcups2-dev_2.2.1-8%2bdeb9u2_arm64.deb         \
-    http://ftp.us.debian.org/debian/pool/main/c/cups/libcupsimage2-dev_2.2.1-8%2bdeb9u2_arm64.deb    \
+    http://ftp.us.debian.org/debian/pool/main/c/cups/libcups2-dev_2.2.1-8%2bdeb9u3_arm64.deb         \
+    http://ftp.us.debian.org/debian/pool/main/c/cups/libcupsimage2-dev_2.2.1-8%2bdeb9u3_arm64.deb    \
     http://ftp.us.debian.org/debian/pool/main/d/dwarfutils/libdwarf-dev_20161124-1+deb9u1_arm64.deb  \
     http://ftp.us.debian.org/debian/pool/main/f/freetype/libfreetype6_2.6.3-3.2_arm64.deb            \
     http://ftp.us.debian.org/debian/pool/main/f/freetype/libfreetype6-dev_2.6.3-3.2_arm64.deb        \
@@ -110,6 +98,8 @@ ADD \
     http://ftp.us.debian.org/debian/pool/main/libp/libpng1.6/libpng16-16_1.6.28-1_arm64.deb          \
     http://ftp.us.debian.org/debian/pool/main/libp/libpng1.6/libpng-dev_1.6.28-1_arm64.deb           \
     http://ftp.us.debian.org/debian/pool/main/libs/libsm/libsm-dev_1.2.2-1+b3_arm64.deb              \
+    http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl1.1_1.1.1b-2_arm64.deb                 \
+    http://ftp.us.debian.org/debian/pool/main/o/openssl/libssl-dev_1.1.1b-2_arm64.deb                \
     http://ftp.us.debian.org/debian/pool/main/libx/libx11/libx11-6_1.6.4-3%2bdeb9u1_arm64.deb        \
     http://ftp.us.debian.org/debian/pool/main/libx/libx11/libx11-dev_1.6.4-3%2bdeb9u1_arm64.deb      \
     http://ftp.us.debian.org/debian/pool/main/libx/libxext/libxext6_1.3.3-1+b2_arm64.deb             \

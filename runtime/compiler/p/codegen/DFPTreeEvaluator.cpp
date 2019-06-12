@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2017 IBM Corp. and others
+ * Copyright (c) 2000, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -22,7 +22,9 @@
 
 #include <stdint.h>
 #include "codegen/CodeGenerator.hpp"
+#include "codegen/CodeGeneratorUtils.hpp"
 #include "codegen/Linkage.hpp"
+#include "codegen/Linkage_inlines.hpp"
 #include "codegen/TreeEvaluator.hpp"
 #include "env/CompilerEnv.hpp"
 #include "il/DataTypes.hpp"
@@ -1821,7 +1823,7 @@ extern TR::Register *inlineBigDecimalCompareTo(
    generateTrg1Src2Instruction(cg, TR::InstOpCode::add, node, retRegister, retRegister, crGPRegister);
    cg->stopUsingRegister(crGPRegister);
 
-   addDependency(deps, crRegister, TR::RealRegister::cr0, TR_CCR, cg);
+   TR::addDependency(deps, crRegister, TR::RealRegister::cr0, TR_CCR, cg);
    generateDepLabelInstruction(cg, TR::InstOpCode::label, node, TR::LabelSymbol::create(cg->trHeapMemory(),cg), deps);
    deps->stopUsingDepRegs(cg);
 
@@ -1936,7 +1938,7 @@ extern TR::Register *inlineBigDecimalUnaryOp(
       }
    else // handles all 32-bit, except dxex
       {
-      // Alocate temporary memory
+      // Allocate temporary memory
       temp = cg->allocateLocalTemp(TR::Int64);
       tempMR = new (cg->trHeapMemory()) TR::MemoryReference(node, temp, 8, cg);
 
@@ -2314,7 +2316,7 @@ extern TR::Register *inlineBigDecimalUnscaledValue(
       }
    else // 32-bit or if no direct move support
       {
-      // Alocate temporary memory
+      // Allocate temporary memory
       TR::SymbolReference * tempSymRef = cg->allocateLocalTemp(TR::Int64);
       TR::MemoryReference * tempMR = new (cg->trHeapMemory()) TR::MemoryReference(node, tempSymRef, 8, cg);
 

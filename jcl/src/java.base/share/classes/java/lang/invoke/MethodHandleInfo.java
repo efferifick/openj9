@@ -1,6 +1,6 @@
 /*[INCLUDE-IF Sidecar18-SE]*/
 /*******************************************************************************
- * Copyright (c) 2014, 2014 IBM Corp. and others
+ * Copyright (c) 2014, 2019 IBM Corp. and others
  *
  * This program and the accompanying materials are made available under
  * the terms of the Eclipse Public License 2.0 which accompanies this
@@ -119,7 +119,7 @@ public interface MethodHandleInfo {
 	 * @return whether the underlying method has variable arity
 	 */
 	default boolean isVarArgs() {
-		// Check whether the MethodHandle refers to a Method or Contructor (not Field)
+		// Check whether the MethodHandle refers to a Method or Constructor (not Field)
 		if (getReferenceKind() >= REF_invokeVirtual) {
 			return ((getModifiers() & MethodHandles.Lookup.VARARGS) != 0);
 		}
@@ -129,7 +129,7 @@ public interface MethodHandleInfo {
 	/**
 	 * Reflects the underlying member as a Method, Field or Constructor. The member must be accessible to the provided lookup object.
 	 * Public members are reflected as if by <code>getMethod</code>, <code>getField</code> or <code>getConstructor</code>. 
-	 * Non-public members are reflected as if by <code>getDeclearedMethod</code>, <code>getDeclaredField</code> or <code>getDeclaredConstructor</code>.
+	 * Non-public members are reflected as if by <code>getDeclaredMethod</code>, <code>getDeclaredField</code> or <code>getDeclaredConstructor</code>.
 	 * 
 	 * @param expected The expected type of the returned Member
 	 * @param lookup The lookup that was used to create the MethodHandle, or a lookup object with equivalent access
